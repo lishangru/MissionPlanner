@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
@@ -56,6 +57,9 @@ namespace MissionPlanner
 
         public static menuicons displayicons; //do not initialize to allow update of custom icons
         public static string running_directory = Settings.GetRunningDirectory();
+
+        private Font _menuItemFont;
+        private Font _accentButtonFont;
 
         public abstract class menuicons
         {
@@ -718,6 +722,8 @@ namespace MissionPlanner
             ThemeManager.LoadTheme(Settings.Instance["theme"]);
 
             Utilities.ThemeManager.ApplyThemeTo(this);
+
+            ApplyModernMenuStyling();
 
 
             // define default basestream
@@ -4358,6 +4364,265 @@ namespace MissionPlanner
             panel1.BringToFront();
             panel1.Visible = true;
             this.ResumeLayout();
+        }
+
+        private void ApplyModernMenuStyling()
+        {
+            if (MainMenu == null || panel1 == null || status1 == null)
+            {
+                return;
+            }
+
+            Color windowBackground = Color.FromArgb(18, 21, 29);
+            Color panelBackground = Color.FromArgb(24, 28, 38);
+            Color menuBackground = Color.FromArgb(30, 34, 44);
+            Color menuHover = Color.FromArgb(42, 47, 60);
+            Color accentColor = Color.FromArgb(88, 101, 242);
+            Color textColor = Color.FromArgb(234, 237, 243);
+
+            _menuItemFont ??= new Font("Segoe UI Semibold", 10F);
+            _accentButtonFont ??= new Font("Segoe UI Semibold", 10F);
+
+            BackColor = windowBackground;
+            panel1.BackColor = panelBackground;
+            panel1.Padding = new Padding(16, 0, 16, 12);
+
+            MainMenu.RenderMode = ToolStripRenderMode.Professional;
+            MainMenu.Renderer = new ModernMenuRenderer(menuBackground, menuHover, accentColor, textColor);
+            MainMenu.BackColor = menuBackground;
+            MainMenu.ForeColor = textColor;
+            MainMenu.Padding = new Padding(20, 10, 20, 10);
+            MainMenu.ImageScalingSize = new Size(40, 40);
+            MainMenu.GripMargin = new Padding(0);
+
+            foreach (ToolStripItem item in MainMenu.Items)
+            {
+                item.ForeColor = textColor;
+                item.Margin = new Padding(6, 0, 6, 0);
+
+                if (item is ToolStripButton button)
+                {
+                    button.Font = _menuItemFont;
+                    button.ForeColor = textColor;
+                    button.ImageScaling = ToolStripItemImageScaling.SizeToFit;
+                    button.Padding = new Padding(6, 8, 6, 2);
+                    button.AutoSize = true;
+
+                    if (ReferenceEquals(button, MenuArduPilot))
+                    {
+                        button.DisplayStyle = ToolStripItemDisplayStyle.Image;
+                        button.Margin = new Padding(20, 0, 0, 0);
+                        continue;
+                    }
+
+                    if (ReferenceEquals(button, MenuConnect))
+                    {
+                        continue;
+                    }
+
+                    button.DisplayStyle = ToolStripItemDisplayStyle.ImageAboveText;
+                    button.TextImageRelation = TextImageRelation.ImageAboveText;
+                }
+                else if (item is ToolStripControlHost host)
+                {
+                    host.Margin = new Padding(16, 0, 0, 0);
+                    host.ForeColor = textColor;
+                    host.BackColor = menuBackground;
+                }
+            }
+
+            MenuConnect.Font = _accentButtonFont;
+            MenuConnect.DisplayStyle = ToolStripItemDisplayStyle.ImageAndText;
+            MenuConnect.TextImageRelation = TextImageRelation.ImageBeforeText;
+            MenuConnect.ImageAlign = ContentAlignment.MiddleLeft;
+            MenuConnect.ForeColor = Color.White;
+            MenuConnect.BackColor = accentColor;
+            MenuConnect.Padding = new Padding(14, 6, 14, 6);
+            MenuConnect.Margin = new Padding(20, 0, 0, 0);
+            MenuConnect.Tag = "accent";
+
+            toolStripConnectionControl.ForeColor = textColor;
+            toolStripConnectionControl.BackColor = menuBackground;
+
+            menu.BGGradTop = accentColor;
+            menu.BGGradBot = ControlPaint.Light(accentColor, 0.2f);
+            menu.TextColor = Color.White;
+            menu.TextColorNotEnabled = Color.FromArgb(160, Color.White);
+            menu.ColorMouseOver = ControlPaint.Light(accentColor, 0.3f);
+            menu.ColorMouseDown = ControlPaint.Dark(accentColor, 0.1f);
+            menu.ColorNotEnabled = Color.FromArgb(55, 58, 68);
+            menu.Outline = Color.Transparent;
+            menu.UseVisualStyleBackColor = false;
+            menu.Font = _accentButtonFont;
+            menu.BackColor = Color.Transparent;
+            menu.Margin = new Padding(12);
+            menu.Padding = new Padding(14, 6, 14, 6);
+            menu.TextAlign = ContentAlignment.MiddleCenter;
+
+            status1.ProgressColor = accentColor;
+            status1.ProgressBackgroundColor = Color.FromArgb(45, 51, 66);
+            status1.CornerRadius = 8;
+        }
+
+        private sealed class ModernMenuRenderer : ToolStripProfessionalRenderer
+        {
+            private readonly Color _menuBackground;
+            private readonly Color _itemHover;
+            private readonly Color _accent;
+            private readonly Color _textColor;
+
+            public ModernMenuRenderer(Color menuBackground, Color itemHover, Color accent, Color textColor)
+                : base(new ModernMenuColorTable(menuBackground, itemHover, accent))
+            {
+                _menuBackground = menuBackground;
+                _itemHover = itemHover;
+                _accent = accent;
+                _textColor = textColor;
+            }
+
+            protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (SolidBrush brush = new SolidBrush(_menuBackground))
+                {
+                    e.Graphics.FillRectangle(brush, e.AffectedBounds);
+                }
+            }
+
+            protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+            {
+                RectangleF bounds = new RectangleF(2, 2, e.Item.Bounds.Width - 4, e.Item.Bounds.Height - 4);
+                if (bounds.Width <= 0 || bounds.Height <= 0)
+                {
+                    return;
+                }
+
+                Color baseColor = e.Item.BackColor.IsEmpty || e.Item.BackColor == Color.Transparent
+                    ? _menuBackground
+                    : e.Item.BackColor;
+
+                if (!e.Item.Selected && !e.Item.Pressed && baseColor == _menuBackground)
+                {
+                    return;
+                }
+
+                if (e.Item.Selected || e.Item.Pressed)
+                {
+                    baseColor = string.Equals(e.Item.Tag as string, "accent", StringComparison.OrdinalIgnoreCase)
+                        ? ControlPaint.Light(_accent, 0.15f)
+                        : _itemHover;
+                }
+
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                using (GraphicsPath path = CreateRoundRectangle(bounds, 10f))
+                {
+                    using (SolidBrush brush = new SolidBrush(baseColor))
+                    {
+                        e.Graphics.FillPath(brush, path);
+                    }
+
+                    if (e.Item.Selected || e.Item.Pressed)
+                    {
+                        using (Pen pen = new Pen(Color.FromArgb(120, _accent), 1f))
+                        {
+                            e.Graphics.DrawPath(pen, path);
+                        }
+                    }
+                }
+            }
+
+            protected override void OnRenderButtonBackground(ToolStripItemRenderEventArgs e)
+            {
+                OnRenderMenuItemBackground(e);
+            }
+
+            protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+            {
+                e.TextColor = e.Item.ForeColor.IsEmpty || e.Item.ForeColor == Color.Transparent ? _textColor : e.Item.ForeColor;
+                base.OnRenderItemText(e);
+            }
+
+            protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+            {
+                // Remove the default border for a flatter appearance.
+            }
+
+            protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (Pen pen = new Pen(Color.FromArgb(80, _accent), 1f))
+                {
+                    Rectangle rect = e.Item.ContentRectangle;
+                    float y = rect.Top + rect.Height / 2f;
+                    e.Graphics.DrawLine(pen, rect.Left + 6, y, rect.Right - 6, y);
+                }
+            }
+
+            private static GraphicsPath CreateRoundRectangle(RectangleF bounds, float radius)
+            {
+                GraphicsPath path = new GraphicsPath();
+
+                if (radius <= 0)
+                {
+                    path.AddRectangle(bounds);
+                    path.CloseFigure();
+                    return path;
+                }
+
+                float diameter = radius * 2f;
+                if (diameter > bounds.Width)
+                {
+                    diameter = bounds.Width;
+                }
+                if (diameter > bounds.Height)
+                {
+                    diameter = bounds.Height;
+                }
+
+                float arcWidth = diameter;
+                float arcHeight = diameter;
+                float right = bounds.Right;
+                float bottom = bounds.Bottom;
+
+                path.StartFigure();
+                path.AddArc(bounds.X, bounds.Y, arcWidth, arcHeight, 180, 90);
+                path.AddArc(right - arcWidth, bounds.Y, arcWidth, arcHeight, 270, 90);
+                path.AddArc(right - arcWidth, bottom - arcHeight, arcWidth, arcHeight, 0, 90);
+                path.AddArc(bounds.X, bottom - arcHeight, arcWidth, arcHeight, 90, 90);
+                path.CloseFigure();
+
+                return path;
+            }
+
+            private sealed class ModernMenuColorTable : ProfessionalColorTable
+            {
+                private readonly Color _menuBackground;
+                private readonly Color _itemHover;
+                private readonly Color _accent;
+
+                public ModernMenuColorTable(Color menuBackground, Color itemHover, Color accent)
+                {
+                    UseSystemColors = false;
+                    _menuBackground = menuBackground;
+                    _itemHover = itemHover;
+                    _accent = accent;
+                }
+
+                public override Color MenuBorder => _menuBackground;
+                public override Color MenuItemBorder => _itemHover;
+                public override Color MenuItemSelected => _itemHover;
+                public override Color MenuStripGradientBegin => _menuBackground;
+                public override Color MenuStripGradientEnd => _menuBackground;
+                public override Color ToolStripDropDownBackground => _menuBackground;
+                public override Color ImageMarginGradientBegin => _menuBackground;
+                public override Color ImageMarginGradientMiddle => _menuBackground;
+                public override Color ImageMarginGradientEnd => _menuBackground;
+                public override Color ButtonSelectedGradientBegin => _accent;
+                public override Color ButtonSelectedGradientEnd => _accent;
+                public override Color ButtonPressedGradientBegin => ControlPaint.Dark(_accent);
+                public override Color ButtonPressedGradientEnd => ControlPaint.Dark(_accent);
+            }
         }
 
         private void autoHideToolStripMenuItem_Click(object sender, EventArgs e)
