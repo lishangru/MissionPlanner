@@ -26,8 +26,17 @@ namespace MissionPlanner
                     components.Dispose();
                 }
 
-                _menuItemFont?.Dispose();
-                _accentButtonFont?.Dispose();
+                if (_menuItemFont != null)
+                {
+                    _menuItemFont.Dispose();
+                    _menuItemFont = null;
+                }
+
+                if (_accentButtonFont != null)
+                {
+                    _accentButtonFont.Dispose();
+                    _accentButtonFont = null;
+                }
             }
             base.Dispose(disposing);
         }

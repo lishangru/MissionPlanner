@@ -4380,8 +4380,15 @@ namespace MissionPlanner
             Color accentColor = Color.FromArgb(88, 101, 242);
             Color textColor = Color.FromArgb(234, 237, 243);
 
-            _menuItemFont ??= new Font("Segoe UI Semibold", 10F);
-            _accentButtonFont ??= new Font("Segoe UI Semibold", 10F);
+            if (_menuItemFont == null)
+            {
+                _menuItemFont = new Font("Segoe UI Semibold", 10F);
+            }
+
+            if (_accentButtonFont == null)
+            {
+                _accentButtonFont = new Font("Segoe UI Semibold", 10F);
+            }
 
             BackColor = windowBackground;
             panel1.BackColor = panelBackground;
@@ -4400,7 +4407,8 @@ namespace MissionPlanner
                 item.ForeColor = textColor;
                 item.Margin = new Padding(6, 0, 6, 0);
 
-                if (item is ToolStripButton button)
+                ToolStripButton button = item as ToolStripButton;
+                if (button != null)
                 {
                     button.Font = _menuItemFont;
                     button.ForeColor = textColor;
@@ -4423,11 +4431,15 @@ namespace MissionPlanner
                     button.DisplayStyle = ToolStripItemDisplayStyle.ImageAboveText;
                     button.TextImageRelation = TextImageRelation.ImageAboveText;
                 }
-                else if (item is ToolStripControlHost host)
+                else
                 {
-                    host.Margin = new Padding(16, 0, 0, 0);
-                    host.ForeColor = textColor;
-                    host.BackColor = menuBackground;
+                    ToolStripControlHost host = item as ToolStripControlHost;
+                    if (host != null)
+                    {
+                        host.Margin = new Padding(16, 0, 0, 0);
+                        host.ForeColor = textColor;
+                        host.BackColor = menuBackground;
+                    }
                 }
             }
 
@@ -4609,19 +4621,70 @@ namespace MissionPlanner
                     _accent = accent;
                 }
 
-                public override Color MenuBorder => _menuBackground;
-                public override Color MenuItemBorder => _itemHover;
-                public override Color MenuItemSelected => _itemHover;
-                public override Color MenuStripGradientBegin => _menuBackground;
-                public override Color MenuStripGradientEnd => _menuBackground;
-                public override Color ToolStripDropDownBackground => _menuBackground;
-                public override Color ImageMarginGradientBegin => _menuBackground;
-                public override Color ImageMarginGradientMiddle => _menuBackground;
-                public override Color ImageMarginGradientEnd => _menuBackground;
-                public override Color ButtonSelectedGradientBegin => _accent;
-                public override Color ButtonSelectedGradientEnd => _accent;
-                public override Color ButtonPressedGradientBegin => ControlPaint.Dark(_accent);
-                public override Color ButtonPressedGradientEnd => ControlPaint.Dark(_accent);
+                public override Color MenuBorder
+                {
+                    get { return _menuBackground; }
+                }
+
+                public override Color MenuItemBorder
+                {
+                    get { return _itemHover; }
+                }
+
+                public override Color MenuItemSelected
+                {
+                    get { return _itemHover; }
+                }
+
+                public override Color MenuStripGradientBegin
+                {
+                    get { return _menuBackground; }
+                }
+
+                public override Color MenuStripGradientEnd
+                {
+                    get { return _menuBackground; }
+                }
+
+                public override Color ToolStripDropDownBackground
+                {
+                    get { return _menuBackground; }
+                }
+
+                public override Color ImageMarginGradientBegin
+                {
+                    get { return _menuBackground; }
+                }
+
+                public override Color ImageMarginGradientMiddle
+                {
+                    get { return _menuBackground; }
+                }
+
+                public override Color ImageMarginGradientEnd
+                {
+                    get { return _menuBackground; }
+                }
+
+                public override Color ButtonSelectedGradientBegin
+                {
+                    get { return _accent; }
+                }
+
+                public override Color ButtonSelectedGradientEnd
+                {
+                    get { return _accent; }
+                }
+
+                public override Color ButtonPressedGradientBegin
+                {
+                    get { return ControlPaint.Dark(_accent); }
+                }
+
+                public override Color ButtonPressedGradientEnd
+                {
+                    get { return ControlPaint.Dark(_accent); }
+                }
             }
         }
 
