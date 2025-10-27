@@ -19,9 +19,24 @@ namespace MissionPlanner
             Console.WriteLine("mainv2_Dispose");
             if (PluginThreadrunner != null)
                 PluginThreadrunner.Dispose();
-            if (disposing && (components != null))
+            if (disposing)
             {
-                components.Dispose();
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+
+                if (_menuItemFont != null)
+                {
+                    _menuItemFont.Dispose();
+                    _menuItemFont = null;
+                }
+
+                if (_accentButtonFont != null)
+                {
+                    _accentButtonFont.Dispose();
+                    _accentButtonFont = null;
+                }
             }
             base.Dispose(disposing);
         }
