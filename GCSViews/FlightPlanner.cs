@@ -64,6 +64,7 @@ namespace MissionPlanner.GCSViews
         private static readonly Font ModernBoldFont = new Font("Segoe UI Semibold", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
         private readonly Dictionary<Control, RoundedCardRenderer> _roundedCards = new Dictionary<Control, RoundedCardRenderer>();
+        private readonly HashSet<Control> _spacedSections = new HashSet<Control>();
 
         private sealed class RoundedCardRenderer
         {
@@ -118,6 +119,10 @@ namespace MissionPlanner.GCSViews
 
             BackColor = pageBackground;
 
+            ApplySectionSpacing(panelAction, new Padding(18, 20, 18, 24));
+            ApplySectionSpacing(panelWaypoints, new Padding(22, 24, 22, 24));
+            ApplySectionSpacing(panelMap, new Padding(24, 24, 24, 28));
+
             if (Parent != null)
             {
                 Parent.BackColor = pageBackground;
@@ -130,8 +135,9 @@ namespace MissionPlanner.GCSViews
             if (flowLayoutPanel1 != null)
             {
                 flowLayoutPanel1.BackColor = Color.Transparent;
-                flowLayoutPanel1.Padding = new Padding(4);
-                flowLayoutPanel1.AutoScrollMargin = new Size(6, 6);
+                flowLayoutPanel1.Padding = new Padding(16, 20, 16, 24);
+                flowLayoutPanel1.AutoScrollMargin = new Size(18, 18);
+                flowLayoutPanel1.AutoScroll = true;
                 flowLayoutPanel1.ControlAdded -= FlowLayoutPanel1_ControlAdded;
                 flowLayoutPanel1.ControlAdded += FlowLayoutPanel1_ControlAdded;
 
@@ -206,7 +212,9 @@ namespace MissionPlanner.GCSViews
             }
 
             panel.BackColor = Color.Transparent;
-            ApplyRoundedCard(panel, Color.White, Color.FromArgb(248, 249, 255), Color.FromArgb(224, 229, 242), 10);
+            panel.Padding = new Padding(16, 18, 16, 18);
+            panel.Margin = new Padding(0, 0, 0, 18);
+            ApplyRoundedCard(panel, Color.White, Color.FromArgb(248, 249, 255), Color.FromArgb(224, 229, 242), 12);
         }
 
         private void StyleMissionGrid(Color accent, Color accentHover, Color textPrimary, Color textSecondary)
@@ -227,16 +235,15 @@ namespace MissionPlanner.GCSViews
             Commands.ColumnHeadersDefaultCellStyle.SelectionBackColor = accent;
             Commands.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
             Commands.ColumnHeadersDefaultCellStyle.Font = ModernBoldFont;
-            Commands.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 6, 8, 6);
-            Commands.ColumnHeadersHeight = 34;
+            Commands.ColumnHeadersDefaultCellStyle.Padding = new Padding(0, 12, 0, 12);
+            Commands.ColumnHeadersHeight = 46;
             Commands.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            Commands.RowTemplate.Height = 28;
             Commands.DefaultCellStyle.Font = ModernRegularFont;
             Commands.DefaultCellStyle.ForeColor = textPrimary;
             Commands.DefaultCellStyle.SelectionBackColor = accentHover;
             Commands.DefaultCellStyle.SelectionForeColor = Color.White;
             Commands.DefaultCellStyle.BackColor = Color.White;
-            Commands.DefaultCellStyle.Padding = new Padding(4);
+            Commands.DefaultCellStyle.Padding = new Padding(12, 6, 12, 6);
             Commands.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 249, 255);
             Commands.AlternatingRowsDefaultCellStyle.SelectionBackColor = accentHover;
             Commands.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.White;
@@ -244,6 +251,9 @@ namespace MissionPlanner.GCSViews
             Commands.RowHeadersDefaultCellStyle.ForeColor = textSecondary;
             Commands.RowHeadersDefaultCellStyle.SelectionBackColor = accentHover;
             Commands.RowHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.RowTemplate.DefaultCellStyle.Padding = new Padding(0, 6, 0, 6);
+            Commands.RowTemplate.Height = 40;
+            Commands.RowTemplate.MinimumHeight = 38;
         }
 
         private void StylePrimaryButton(MyButton button, Color accent, Color accentHover, Color accentPressed)
@@ -262,6 +272,14 @@ namespace MissionPlanner.GCSViews
             button.ColorMouseDown = accentPressed;
             button.ColorNotEnabled = Color.FromArgb(120, accent);
             button.Outline = ControlPaint.Dark(accent, 0.3f);
+            button.CornerRadius = 12;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.Padding = new Padding(12, 0, 12, 0);
+            if (button.Height < 36)
+            {
+                button.Height = 36;
+            }
         }
 
         private void StyleOutlineButton(MyButton button, Color accent, Color textColor)
@@ -280,6 +298,14 @@ namespace MissionPlanner.GCSViews
             button.ColorMouseDown = Color.FromArgb(60, accent);
             button.ColorNotEnabled = Color.FromArgb(120, accent);
             button.Outline = Color.FromArgb(180, accent);
+            button.CornerRadius = 12;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.Padding = new Padding(12, 0, 12, 0);
+            if (button.Height < 36)
+            {
+                button.Height = 36;
+            }
         }
 
         private void StyleComboBox(ComboBox comboBox, Color textColor)
@@ -339,6 +365,64 @@ namespace MissionPlanner.GCSViews
             renderer.CornerRadius = cornerRadius;
 
             control.Invalidate();
+        }
+
+        private void ApplySectionSpacing(Control container, Padding padding)
+        {
+            if (container == null)
+            {
+                return;
+            }
+
+            if (_spacedSections.Contains(container))
+            {
+                return;
+            }
+
+            foreach (Control child in container.Controls)
+            {
+                if (child == null || child.Dock != DockStyle.None)
+                {
+                    continue;
+                }
+
+                AnchorStyles anchor = child.Anchor;
+                bool anchorLeft = (anchor & AnchorStyles.Left) == AnchorStyles.Left;
+                bool anchorRight = (anchor & AnchorStyles.Right) == AnchorStyles.Right;
+                bool anchorTop = (anchor & AnchorStyles.Top) == AnchorStyles.Top;
+                bool anchorBottom = (anchor & AnchorStyles.Bottom) == AnchorStyles.Bottom;
+
+                if (anchorLeft && anchorRight)
+                {
+                    child.Left += padding.Left;
+                    child.Width = Math.Max(0, child.Width - (padding.Left + padding.Right));
+                }
+                else if (anchorLeft || (!anchorLeft && !anchorRight))
+                {
+                    child.Left += padding.Left;
+                }
+                else if (anchorRight)
+                {
+                    child.Left -= padding.Right;
+                }
+
+                if (anchorTop && anchorBottom)
+                {
+                    child.Top += padding.Top;
+                    child.Height = Math.Max(0, child.Height - (padding.Top + padding.Bottom));
+                }
+                else if (anchorTop || (!anchorTop && !anchorBottom))
+                {
+                    child.Top += padding.Top;
+                }
+                else if (anchorBottom)
+                {
+                    child.Top -= padding.Bottom;
+                }
+            }
+
+            container.Padding = padding;
+            _spacedSections.Add(container);
         }
 
         private void RoundedCard_Resize(object sender, EventArgs e)
