@@ -59,10 +59,492 @@ namespace MissionPlanner.GCSViews
 {
     public partial class FlightPlanner : MyUserControl, IDeactivate, IActivate
     {
+        private static readonly Font ModernRegularFont = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+        private static readonly Font ModernBoldFont = new Font("Segoe UI Semibold", 9F, FontStyle.Regular, GraphicsUnit.Point);
+
+        private readonly Dictionary<Control, ModernCardStyle> _modernCardStyles = new Dictionary<Control, ModernCardStyle>();
+
+        private sealed class ModernCardStyle
+        {
+            public Color TopColor { get; set; }
+            public Color BottomColor { get; set; }
+            public Color BorderColor { get; set; }
+            public int CornerRadius { get; set; }
+            public bool DrawShadow { get; set; }
+            public bool ClipChildren { get; set; }
+        }
+
         public FlightPlanner()
         {
             InitializeComponent();
+            ApplyModernStyling();
             Init();
+        }
+
+
+        private void ApplyModernStyling()
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            DoubleBuffered = true;
+
+            Color background = Color.FromArgb(248, 249, 253);
+            Color cardTop = Color.White;
+            Color secondaryCardBottom = Color.FromArgb(246, 248, 255);
+            Color border = Color.FromArgb(222, 226, 237);
+            Color accent = Color.FromArgb(88, 101, 242);
+            Color accentHover = ControlPaint.Light(accent, 0.25f);
+            Color accentPressed = ControlPaint.Dark(accent, 0.2f);
+            Color textPrimary = Color.FromArgb(40, 45, 60);
+            Color textSecondary = Color.FromArgb(92, 99, 120);
+
+            BackColor = background;
+
+            if (Parent != null)
+            {
+                Parent.BackColor = background;
+            }
+
+            if (panelWaypoints != null)
+            {
+                panelWaypoints.BackColor = Color.Transparent;
+                panelWaypoints.Padding = new Padding(16, 18, 16, 14);
+                StyleCard(panelWaypoints, cardTop, secondaryCardBottom, border, 18, false, true);
+            }
+
+            if (panelMap != null)
+            {
+                panelMap.BackColor = Color.Transparent;
+                panelMap.Padding = new Padding(16, 18, 16, 14);
+                StyleCard(panelMap, cardTop, secondaryCardBottom, border, 18, false, true);
+                MainMap.Dock = DockStyle.Fill;
+            }
+
+            if (panelAction != null)
+            {
+                panelAction.BackColor = Color.Transparent;
+                panelAction.Padding = new Padding(14);
+                StyleCard(panelAction, Color.FromArgb(250, 251, 255), Color.FromArgb(243, 245, 253), Color.FromArgb(229, 233, 244), 18, false, true);
+            }
+
+            if (flowLayoutPanel1 != null)
+            {
+                flowLayoutPanel1.BackColor = Color.Transparent;
+                flowLayoutPanel1.Padding = new Padding(4);
+                flowLayoutPanel1.AutoScrollMargin = new Size(8, 8);
+
+                foreach (Control child in flowLayoutPanel1.Controls)
+                {
+                    if (child is Panel cardPanel)
+                    {
+                        cardPanel.Margin = new Padding(8);
+                        cardPanel.Padding = new Padding(12);
+                        cardPanel.BackColor = Color.Transparent;
+                        StyleCard(cardPanel, cardTop, secondaryCardBottom, border, 12, false, true);
+                    }
+                }
+            }
+
+            if (panel3 != null)
+            {
+                panel3.BorderStyle = BorderStyle.None;
+            }
+
+            if (panel2 != null)
+            {
+                panel2.BorderStyle = BorderStyle.None;
+            }
+
+            if (coords1 != null)
+            {
+                coords1.BackColor = Color.Transparent;
+            }
+
+            if (splitter1 != null)
+            {
+                splitter1.BackColor = Color.FromArgb(229, 233, 243);
+            }
+
+            if (splitter2 != null)
+            {
+                splitter2.BackColor = Color.FromArgb(229, 233, 243);
+            }
+
+            ConfigureCommandsGrid(accent, accentHover, textPrimary, textSecondary);
+
+            StylePrimaryButton(BUT_write, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_read, accent, accentHover, accentPressed);
+            StylePrimaryButton(but_writewpfast, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_Add, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_loadwpfile, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_saveWPFile, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_InjectCustomMap, accent, accentHover, accentPressed);
+
+            StyleOutlineButton(but_mincommands, accent, textSecondary);
+
+            StyleComboBox(CMB_altmode, textPrimary);
+            StyleComboBox(cmb_missiontype, textPrimary);
+            StyleComboBox(comboBoxMapType, textPrimary);
+
+            StyleNumericUpDown(Zoomlevel, textPrimary);
+
+            if (TRK_zoom != null)
+            {
+                TRK_zoom.BackColor = Color.Transparent;
+            }
+
+            ApplyTextPalette(panelWaypoints, textPrimary, textSecondary, accent, accentHover);
+            ApplyTextPalette(panelAction, textPrimary, textSecondary, accent, accentHover);
+            ApplyTextPalette(panelMap, textPrimary, textSecondary, accent, accentHover);
+
+            if (lbl_status != null)
+            {
+                lbl_status.ForeColor = accent;
+                lbl_status.Font = ModernBoldFont;
+            }
+
+            if (label6 != null)
+            {
+                label6.Font = ModernBoldFont;
+                label6.ForeColor = textPrimary;
+            }
+        }
+
+
+        private void ConfigureCommandsGrid(Color accent, Color accentHover, Color textPrimary, Color textSecondary)
+        {
+            if (Commands == null)
+            {
+                return;
+            }
+
+            Commands.EnableHeadersVisualStyles = false;
+            Commands.BackgroundColor = Color.White;
+            Commands.BorderStyle = BorderStyle.None;
+            Commands.GridColor = Color.FromArgb(228, 232, 244);
+            Commands.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+            Commands.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            Commands.RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+            Commands.ColumnHeadersHeight = 36;
+            Commands.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            Commands.RowTemplate.Height = 32;
+            Commands.DefaultCellStyle.Font = ModernRegularFont;
+            Commands.DefaultCellStyle.ForeColor = textPrimary;
+            Commands.DefaultCellStyle.SelectionBackColor = accentHover;
+            Commands.DefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.DefaultCellStyle.Padding = new Padding(4, 6, 4, 6);
+            Commands.DefaultCellStyle.BackColor = Color.White;
+            Commands.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+            {
+                BackColor = Color.FromArgb(246, 248, 255),
+                SelectionBackColor = accentHover,
+                SelectionForeColor = Color.White
+            };
+            Commands.ColumnHeadersDefaultCellStyle.BackColor = accent;
+            Commands.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            Commands.ColumnHeadersDefaultCellStyle.SelectionBackColor = accent;
+            Commands.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.ColumnHeadersDefaultCellStyle.Font = ModernBoldFont;
+            Commands.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+            Commands.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 10, 8, 10);
+            Commands.RowHeadersDefaultCellStyle.BackColor = Color.FromArgb(238, 240, 248);
+            Commands.RowHeadersDefaultCellStyle.ForeColor = textSecondary;
+            Commands.RowHeadersDefaultCellStyle.SelectionBackColor = accentHover;
+            Commands.RowHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.Dock = DockStyle.Fill;
+        }
+
+
+        private void StylePrimaryButton(MyButton button, Color accent, Color accentHover, Color accentPressed)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.BGGradTop = accent;
+            button.BGGradBot = ControlPaint.Dark(accent, 0.05f);
+            button.TextColor = Color.White;
+            button.TextColorNotEnabled = Color.FromArgb(200, Color.White);
+            button.ColorMouseOver = accentHover;
+            button.ColorMouseDown = accentPressed;
+            button.ColorNotEnabled = Color.FromArgb(120, accent);
+            button.Outline = ControlPaint.Dark(accent, 0.2f);
+            button.Font = ModernBoldFont;
+        }
+
+
+        private void StyleOutlineButton(MyButton button, Color accent, Color textColor)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            Color outline = Color.FromArgb(140, accent);
+            button.BGGradTop = Color.White;
+            button.BGGradBot = Color.FromArgb(237, 240, 252);
+            button.TextColor = textColor;
+            button.TextColorNotEnabled = Color.FromArgb(160, textColor);
+            button.ColorMouseOver = Color.FromArgb(25, accent);
+            button.ColorMouseDown = Color.FromArgb(40, accent);
+            button.ColorNotEnabled = Color.FromArgb(60, accent);
+            button.Outline = outline;
+            button.Font = ModernBoldFont;
+        }
+
+
+        private void StyleComboBox(ComboBox comboBox, Color textColor)
+        {
+            if (comboBox == null)
+            {
+                return;
+            }
+
+            comboBox.FlatStyle = FlatStyle.Flat;
+            comboBox.BackColor = Color.White;
+            comboBox.ForeColor = textColor;
+            comboBox.Font = ModernRegularFont;
+            comboBox.IntegralHeight = false;
+            comboBox.DropDownHeight = 240;
+        }
+
+
+        private void StyleNumericUpDown(NumericUpDown numericUpDown, Color textColor)
+        {
+            if (numericUpDown == null)
+            {
+                return;
+            }
+
+            numericUpDown.BorderStyle = BorderStyle.FixedSingle;
+            numericUpDown.ForeColor = textColor;
+            numericUpDown.BackColor = Color.White;
+            numericUpDown.Font = ModernRegularFont;
+        }
+
+
+        private void ApplyTextPalette(Control root, Color headingColor, Color bodyColor, Color accent, Color accentHover)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            foreach (Control child in root.Controls)
+            {
+                if (ReferenceEquals(child, lbl_status))
+                {
+                    continue;
+                }
+
+                if (child is Label label)
+                {
+                    bool emphasize = label.Font != null && label.Font.Bold;
+                    label.ForeColor = emphasize ? headingColor : bodyColor;
+                }
+                else if (child is CheckBox checkBox)
+                {
+                    checkBox.ForeColor = bodyColor;
+                }
+                else if (child is LinkLabel linkLabel)
+                {
+                    linkLabel.LinkColor = accent;
+                    linkLabel.ActiveLinkColor = accentHover;
+                    linkLabel.VisitedLinkColor = accent;
+                    linkLabel.ForeColor = accent;
+                }
+                else if (child is GroupBox groupBox)
+                {
+                    groupBox.ForeColor = headingColor;
+                }
+
+                if (!(child is DataGridView))
+                {
+                    ApplyTextPalette(child, headingColor, bodyColor, accent, accentHover);
+                }
+            }
+        }
+
+
+        private void StyleCard(Control panel, Color topColor, Color bottomColor, Color borderColor, int cornerRadius, bool drawShadow, bool clipChildren)
+        {
+            if (panel == null)
+            {
+                return;
+            }
+
+            ModernCardStyle style = new ModernCardStyle
+            {
+                TopColor = topColor,
+                BottomColor = bottomColor,
+                BorderColor = borderColor,
+                CornerRadius = cornerRadius,
+                DrawShadow = drawShadow,
+                ClipChildren = clipChildren
+            };
+
+            if (_modernCardStyles.ContainsKey(panel))
+            {
+                _modernCardStyles[panel] = style;
+            }
+            else
+            {
+                _modernCardStyles.Add(panel, style);
+                panel.Paint += ModernPanelPaint;
+                panel.Resize += ModernPanelResize;
+                panel.Disposed += ModernPanelDisposed;
+            }
+
+            panel.BackColor = Color.Transparent;
+            EnableDoubleBuffering(panel);
+            UpdatePanelRegion(panel, style);
+            panel.Invalidate();
+        }
+
+
+        private void ModernPanelPaint(object sender, PaintEventArgs e)
+        {
+            if (sender is Control panel && _modernCardStyles.TryGetValue(panel, out ModernCardStyle style))
+            {
+                Rectangle bounds = panel.ClientRectangle;
+                if (bounds.Width <= 2 || bounds.Height <= 2)
+                {
+                    return;
+                }
+
+                bounds = Rectangle.Inflate(bounds, -1, -1);
+
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.Clear(Color.Transparent);
+
+                using (GraphicsPath path = CreateRoundRectangle(bounds, style.CornerRadius))
+                {
+                    if (style.DrawShadow)
+                    {
+                        Rectangle shadowRect = new Rectangle(bounds.X + 3, bounds.Y + 4, bounds.Width, bounds.Height);
+                        using (GraphicsPath shadowPath = CreateRoundRectangle(shadowRect, style.CornerRadius))
+                        using (SolidBrush shadowBrush = new SolidBrush(Color.FromArgb(40, Color.Black)))
+                        {
+                            e.Graphics.FillPath(shadowBrush, shadowPath);
+                        }
+                    }
+
+                    using (LinearGradientBrush brush = new LinearGradientBrush(bounds, style.TopColor, style.BottomColor, LinearGradientMode.Vertical))
+                    {
+                        e.Graphics.FillPath(brush, path);
+                    }
+
+                    using (Pen borderPen = new Pen(style.BorderColor, 1f))
+                    {
+                        e.Graphics.DrawPath(borderPen, path);
+                    }
+                }
+            }
+        }
+
+
+        private void ModernPanelResize(object sender, EventArgs e)
+        {
+            if (sender is Control panel && _modernCardStyles.TryGetValue(panel, out ModernCardStyle style))
+            {
+                UpdatePanelRegion(panel, style);
+            }
+        }
+
+
+        private void ModernPanelDisposed(object sender, EventArgs e)
+        {
+            if (sender is Control panel)
+            {
+                panel.Paint -= ModernPanelPaint;
+                panel.Resize -= ModernPanelResize;
+                panel.Disposed -= ModernPanelDisposed;
+
+                if (_modernCardStyles.Remove(panel) && panel.Region != null)
+                {
+                    panel.Region.Dispose();
+                    panel.Region = null;
+                }
+            }
+        }
+
+
+        private void UpdatePanelRegion(Control panel, ModernCardStyle style)
+        {
+            if (panel == null || style == null)
+            {
+                return;
+            }
+
+            if (!style.ClipChildren)
+            {
+                Region previous = panel.Region;
+                panel.Region = null;
+                previous?.Dispose();
+                return;
+            }
+
+            Rectangle bounds = panel.ClientRectangle;
+            if (bounds.Width <= 2 || bounds.Height <= 2)
+            {
+                return;
+            }
+
+            bounds = Rectangle.Inflate(bounds, -1, -1);
+
+            using (GraphicsPath path = CreateRoundRectangle(bounds, style.CornerRadius))
+            {
+                Region previous = panel.Region;
+                panel.Region = new Region(path);
+                previous?.Dispose();
+            }
+        }
+
+
+        private static GraphicsPath CreateRoundRectangle(Rectangle bounds, int radius)
+        {
+            GraphicsPath path = new GraphicsPath();
+
+            int limitedRadius = Math.Max(0, radius);
+            int diameter = Math.Min(limitedRadius * 2, Math.Min(bounds.Width, bounds.Height));
+            if (diameter <= 0)
+            {
+                path.AddRectangle(bounds);
+                path.CloseFigure();
+                return path;
+            }
+
+            Size arcSize = new Size(diameter, diameter);
+            Rectangle arc = new Rectangle(bounds.Location, arcSize);
+
+            path.AddArc(arc, 180, 90);
+            arc.X = bounds.Right - diameter;
+            path.AddArc(arc, 270, 90);
+            arc.Y = bounds.Bottom - diameter;
+            path.AddArc(arc, 0, 90);
+            arc.X = bounds.Left;
+            path.AddArc(arc, 90, 90);
+            path.CloseFigure();
+
+            return path;
+        }
+
+
+        private static void EnableDoubleBuffering(Control control)
+        {
+            if (control == null)
+            {
+                return;
+            }
+
+            try
+            {
+                typeof(Control).InvokeMember("DoubleBuffered", BindingFlags.SetProperty | BindingFlags.Instance | BindingFlags.NonPublic, null, control, new object[] { true });
+            }
+            catch
+            {
+                // ignored - double buffering is a best-effort enhancement
+            }
         }
 
 
