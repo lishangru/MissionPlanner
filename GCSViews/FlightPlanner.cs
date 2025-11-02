@@ -62,114 +62,105 @@ namespace MissionPlanner.GCSViews
         private static readonly Font ModernRegularFont = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         private static readonly Font ModernBoldFont = new Font("Segoe UI Semibold", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
-        private readonly Dictionary<Control, ModernCardStyle> _modernCardStyles = new Dictionary<Control, ModernCardStyle>();
+        private readonly Dictionary<Control, RoundedCardRenderer> _roundedCards = new Dictionary<Control, RoundedCardRenderer>();
 
-        private sealed class ModernCardStyle
+        private sealed class RoundedCardRenderer
         {
-            public Color TopColor { get; set; }
-            public Color BottomColor { get; set; }
-            public Color BorderColor { get; set; }
-            public int CornerRadius { get; set; }
-            public bool DrawShadow { get; set; }
-            public bool ClipChildren { get; set; }
+            public Color TopColor;
+            public Color BottomColor;
+            public Color BorderColor;
+            public int CornerRadius;
         }
 
         public FlightPlanner()
         {
             InitializeComponent();
-            ApplyModernStyling();
             Init();
+            ApplyModernTheme();
+            ParentChanged += FlightPlanner_ParentChanged;
         }
 
 
-        private void ApplyModernStyling()
+        private void but_mincommands_Click(object sender, System.EventArgs e)
         {
-            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer, true);
-            DoubleBuffered = true;
+            if (panelWaypoints.Height <= 30)
+            {
+                panelWaypoints.Height = 166;
+                but_mincommands.Text = @"˅";
+            }
+            else
+            {
+                panelWaypoints.Height = but_mincommands.Height;
+                but_mincommands.Text = @"˄";
+            }
+        }
 
-            Color background = Color.FromArgb(248, 249, 253);
+        private void FlightPlanner_ParentChanged(object sender, EventArgs e)
+        {
+            if (Parent != null)
+            {
+                Parent.BackColor = BackColor;
+            }
+        }
+
+        private void ApplyModernTheme()
+        {
+            Color pageBackground = Color.FromArgb(244, 246, 251);
             Color cardTop = Color.White;
-            Color secondaryCardBottom = Color.FromArgb(246, 248, 255);
-            Color border = Color.FromArgb(222, 226, 237);
+            Color cardBottom = Color.FromArgb(248, 249, 255);
+            Color cardBorder = Color.FromArgb(220, 226, 240);
             Color accent = Color.FromArgb(88, 101, 242);
-            Color accentHover = ControlPaint.Light(accent, 0.25f);
+            Color accentHover = ControlPaint.Light(accent, 0.2f);
             Color accentPressed = ControlPaint.Dark(accent, 0.2f);
-            Color textPrimary = Color.FromArgb(40, 45, 60);
-            Color textSecondary = Color.FromArgb(92, 99, 120);
+            Color textPrimary = Color.FromArgb(46, 48, 66);
+            Color textSecondary = Color.FromArgb(104, 108, 125);
 
-            BackColor = background;
+            BackColor = pageBackground;
 
             if (Parent != null)
             {
-                Parent.BackColor = background;
+                Parent.BackColor = pageBackground;
             }
 
-            if (panelWaypoints != null)
-            {
-                panelWaypoints.BackColor = Color.Transparent;
-                panelWaypoints.Padding = new Padding(16, 18, 16, 14);
-                StyleCard(panelWaypoints, cardTop, secondaryCardBottom, border, 18, false, true);
-            }
-
-            if (panelMap != null)
-            {
-                panelMap.BackColor = Color.Transparent;
-                panelMap.Padding = new Padding(16, 18, 16, 14);
-                StyleCard(panelMap, cardTop, secondaryCardBottom, border, 18, false, true);
-                MainMap.Dock = DockStyle.Fill;
-            }
-
-            if (panelAction != null)
-            {
-                panelAction.BackColor = Color.Transparent;
-                panelAction.Padding = new Padding(14);
-                StyleCard(panelAction, Color.FromArgb(250, 251, 255), Color.FromArgb(243, 245, 253), Color.FromArgb(229, 233, 244), 18, false, true);
-            }
+            ApplyRoundedCard(panelWaypoints, cardTop, cardBottom, cardBorder, 14, new Padding(18, 16, 18, 16));
+            ApplyRoundedCard(panelAction, Color.FromArgb(252, 253, 255), Color.FromArgb(244, 246, 252), Color.FromArgb(210, 218, 235), 14, new Padding(16));
+            ApplyRoundedCard(panelMap, cardTop, cardBottom, cardBorder, 18, new Padding(16));
 
             if (flowLayoutPanel1 != null)
             {
                 flowLayoutPanel1.BackColor = Color.Transparent;
                 flowLayoutPanel1.Padding = new Padding(4);
-                flowLayoutPanel1.AutoScrollMargin = new Size(8, 8);
+                flowLayoutPanel1.AutoScrollMargin = new Size(6, 6);
+                flowLayoutPanel1.ControlAdded -= FlowLayoutPanel1_ControlAdded;
+                flowLayoutPanel1.ControlAdded += FlowLayoutPanel1_ControlAdded;
 
                 foreach (Control child in flowLayoutPanel1.Controls)
                 {
-                    if (child is Panel cardPanel)
-                    {
-                        cardPanel.Margin = new Padding(8);
-                        cardPanel.Padding = new Padding(12);
-                        cardPanel.BackColor = Color.Transparent;
-                        StyleCard(cardPanel, cardTop, secondaryCardBottom, border, 12, false, true);
-                    }
+                    StyleActionCard(child);
                 }
             }
 
             if (panel3 != null)
             {
-                panel3.BorderStyle = BorderStyle.None;
+                panel3.BackColor = Color.Transparent;
             }
 
             if (panel2 != null)
             {
-                panel2.BorderStyle = BorderStyle.None;
-            }
-
-            if (coords1 != null)
-            {
-                coords1.BackColor = Color.Transparent;
+                panel2.BackColor = Color.Transparent;
             }
 
             if (splitter1 != null)
             {
-                splitter1.BackColor = Color.FromArgb(229, 233, 243);
+                splitter1.BackColor = Color.FromArgb(223, 228, 240);
             }
 
             if (splitter2 != null)
             {
-                splitter2.BackColor = Color.FromArgb(229, 233, 243);
+                splitter2.BackColor = Color.FromArgb(223, 228, 240);
             }
 
-            ConfigureCommandsGrid(accent, accentHover, textPrimary, textSecondary);
+            StyleMissionGrid(accent, accentHover, textPrimary, textSecondary);
 
             StylePrimaryButton(BUT_write, accent, accentHover, accentPressed);
             StylePrimaryButton(BUT_read, accent, accentHover, accentPressed);
@@ -187,19 +178,10 @@ namespace MissionPlanner.GCSViews
 
             StyleNumericUpDown(Zoomlevel, textPrimary);
 
-            if (TRK_zoom != null)
-            {
-                TRK_zoom.BackColor = Color.Transparent;
-            }
-
-            ApplyTextPalette(panelWaypoints, textPrimary, textSecondary, accent, accentHover);
-            ApplyTextPalette(panelAction, textPrimary, textSecondary, accent, accentHover);
-            ApplyTextPalette(panelMap, textPrimary, textSecondary, accent, accentHover);
-
             if (lbl_status != null)
             {
-                lbl_status.ForeColor = accent;
                 lbl_status.Font = ModernBoldFont;
+                lbl_status.ForeColor = accent;
             }
 
             if (label6 != null)
@@ -209,8 +191,26 @@ namespace MissionPlanner.GCSViews
             }
         }
 
+        private void FlowLayoutPanel1_ControlAdded(object sender, ControlEventArgs e)
+        {
+            StyleActionCard(e.Control);
+        }
 
-        private void ConfigureCommandsGrid(Color accent, Color accentHover, Color textPrimary, Color textSecondary)
+        private void StyleActionCard(Control control)
+        {
+            Panel panel = control as Panel;
+            if (panel == null)
+            {
+                return;
+            }
+
+            panel.Margin = new Padding(8);
+            panel.Padding = new Padding(12, 10, 12, 10);
+            panel.BackColor = Color.Transparent;
+            ApplyRoundedCard(panel, Color.White, Color.FromArgb(248, 249, 255), Color.FromArgb(224, 229, 242), 10);
+        }
+
+        private void StyleMissionGrid(Color accent, Color accentHover, Color textPrimary, Color textSecondary)
         {
             if (Commands == null)
             {
@@ -220,39 +220,32 @@ namespace MissionPlanner.GCSViews
             Commands.EnableHeadersVisualStyles = false;
             Commands.BackgroundColor = Color.White;
             Commands.BorderStyle = BorderStyle.None;
-            Commands.GridColor = Color.FromArgb(228, 232, 244);
+            Commands.GridColor = Color.FromArgb(226, 230, 242);
             Commands.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-            Commands.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
             Commands.RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
-            Commands.ColumnHeadersHeight = 36;
-            Commands.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
-            Commands.RowTemplate.Height = 32;
-            Commands.DefaultCellStyle.Font = ModernRegularFont;
-            Commands.DefaultCellStyle.ForeColor = textPrimary;
-            Commands.DefaultCellStyle.SelectionBackColor = accentHover;
-            Commands.DefaultCellStyle.SelectionForeColor = Color.White;
-            Commands.DefaultCellStyle.Padding = new Padding(4, 6, 4, 6);
-            Commands.DefaultCellStyle.BackColor = Color.White;
-            Commands.AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
-            {
-                BackColor = Color.FromArgb(246, 248, 255),
-                SelectionBackColor = accentHover,
-                SelectionForeColor = Color.White
-            };
             Commands.ColumnHeadersDefaultCellStyle.BackColor = accent;
             Commands.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
             Commands.ColumnHeadersDefaultCellStyle.SelectionBackColor = accent;
             Commands.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
             Commands.ColumnHeadersDefaultCellStyle.Font = ModernBoldFont;
-            Commands.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
-            Commands.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 10, 8, 10);
-            Commands.RowHeadersDefaultCellStyle.BackColor = Color.FromArgb(238, 240, 248);
+            Commands.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 6, 8, 6);
+            Commands.ColumnHeadersHeight = 34;
+            Commands.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            Commands.RowTemplate.Height = 28;
+            Commands.DefaultCellStyle.Font = ModernRegularFont;
+            Commands.DefaultCellStyle.ForeColor = textPrimary;
+            Commands.DefaultCellStyle.SelectionBackColor = accentHover;
+            Commands.DefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.DefaultCellStyle.BackColor = Color.White;
+            Commands.DefaultCellStyle.Padding = new Padding(4);
+            Commands.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 249, 255);
+            Commands.AlternatingRowsDefaultCellStyle.SelectionBackColor = accentHover;
+            Commands.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.RowHeadersDefaultCellStyle.BackColor = Color.FromArgb(236, 240, 248);
             Commands.RowHeadersDefaultCellStyle.ForeColor = textSecondary;
             Commands.RowHeadersDefaultCellStyle.SelectionBackColor = accentHover;
             Commands.RowHeadersDefaultCellStyle.SelectionForeColor = Color.White;
-            Commands.Dock = DockStyle.Fill;
         }
-
 
         private void StylePrimaryButton(MyButton button, Color accent, Color accentHover, Color accentPressed)
         {
@@ -261,17 +254,17 @@ namespace MissionPlanner.GCSViews
                 return;
             }
 
+            button.Font = ModernBoldFont;
+            button.MinimumSize = new Size(92, 32);
             button.BGGradTop = accent;
             button.BGGradBot = ControlPaint.Dark(accent, 0.05f);
             button.TextColor = Color.White;
-            button.TextColorNotEnabled = Color.FromArgb(200, Color.White);
+            button.TextColorNotEnabled = Color.FromArgb(180, Color.White);
             button.ColorMouseOver = accentHover;
             button.ColorMouseDown = accentPressed;
             button.ColorNotEnabled = Color.FromArgb(120, accent);
-            button.Outline = ControlPaint.Dark(accent, 0.2f);
-            button.Font = ModernBoldFont;
+            button.Outline = ControlPaint.Dark(accent, 0.3f);
         }
-
 
         private void StyleOutlineButton(MyButton button, Color accent, Color textColor)
         {
@@ -280,18 +273,17 @@ namespace MissionPlanner.GCSViews
                 return;
             }
 
-            Color outline = Color.FromArgb(140, accent);
+            button.Font = ModernBoldFont;
+            button.MinimumSize = new Size(92, 32);
             button.BGGradTop = Color.White;
-            button.BGGradBot = Color.FromArgb(237, 240, 252);
+            button.BGGradBot = Color.White;
             button.TextColor = textColor;
             button.TextColorNotEnabled = Color.FromArgb(160, textColor);
-            button.ColorMouseOver = Color.FromArgb(25, accent);
-            button.ColorMouseDown = Color.FromArgb(40, accent);
-            button.ColorNotEnabled = Color.FromArgb(60, accent);
-            button.Outline = outline;
-            button.Font = ModernBoldFont;
+            button.ColorMouseOver = Color.FromArgb(30, accent);
+            button.ColorMouseDown = Color.FromArgb(60, accent);
+            button.ColorNotEnabled = Color.FromArgb(120, accent);
+            button.Outline = Color.FromArgb(180, accent);
         }
-
 
         private void StyleComboBox(ComboBox comboBox, Color textColor)
         {
@@ -301,13 +293,12 @@ namespace MissionPlanner.GCSViews
             }
 
             comboBox.FlatStyle = FlatStyle.Flat;
-            comboBox.BackColor = Color.White;
-            comboBox.ForeColor = textColor;
             comboBox.Font = ModernRegularFont;
+            comboBox.ForeColor = textColor;
+            comboBox.BackColor = Color.White;
             comboBox.IntegralHeight = false;
-            comboBox.DropDownHeight = 240;
+            comboBox.DropDownHeight = 220;
         }
-
 
         private void StyleNumericUpDown(NumericUpDown numericUpDown, Color textColor)
         {
@@ -317,196 +308,129 @@ namespace MissionPlanner.GCSViews
             }
 
             numericUpDown.BorderStyle = BorderStyle.FixedSingle;
+            numericUpDown.Font = ModernRegularFont;
             numericUpDown.ForeColor = textColor;
             numericUpDown.BackColor = Color.White;
-            numericUpDown.Font = ModernRegularFont;
         }
 
-
-        private void ApplyTextPalette(Control root, Color headingColor, Color bodyColor, Color accent, Color accentHover)
+        private void ApplyRoundedCard(Control control, Color topColor, Color bottomColor, Color borderColor, int cornerRadius, Padding padding)
         {
-            if (root == null)
+            if (control == null)
             {
                 return;
             }
 
-            foreach (Control child in root.Controls)
-            {
-                if (ReferenceEquals(child, lbl_status))
-                {
-                    continue;
-                }
-
-                if (child is Label label)
-                {
-                    bool emphasize = label.Font != null && label.Font.Bold;
-                    label.ForeColor = emphasize ? headingColor : bodyColor;
-                }
-                else if (child is CheckBox checkBox)
-                {
-                    checkBox.ForeColor = bodyColor;
-                }
-                else if (child is LinkLabel linkLabel)
-                {
-                    linkLabel.LinkColor = accent;
-                    linkLabel.ActiveLinkColor = accentHover;
-                    linkLabel.VisitedLinkColor = accent;
-                    linkLabel.ForeColor = accent;
-                }
-                else if (child is GroupBox groupBox)
-                {
-                    groupBox.ForeColor = headingColor;
-                }
-
-                if (!(child is DataGridView))
-                {
-                    ApplyTextPalette(child, headingColor, bodyColor, accent, accentHover);
-                }
-            }
+            control.Padding = padding;
+            ApplyRoundedCard(control, topColor, bottomColor, borderColor, cornerRadius);
         }
 
-
-        private void StyleCard(Control panel, Color topColor, Color bottomColor, Color borderColor, int cornerRadius, bool drawShadow, bool clipChildren)
+        private void ApplyRoundedCard(Control control, Color topColor, Color bottomColor, Color borderColor, int cornerRadius)
         {
-            if (panel == null)
+            if (control == null)
             {
                 return;
             }
 
-            ModernCardStyle style = new ModernCardStyle
+            Panel panel = control as Panel;
+            if (panel != null)
             {
-                TopColor = topColor,
-                BottomColor = bottomColor,
-                BorderColor = borderColor,
-                CornerRadius = cornerRadius,
-                DrawShadow = drawShadow,
-                ClipChildren = clipChildren
-            };
-
-            if (_modernCardStyles.ContainsKey(panel))
-            {
-                _modernCardStyles[panel] = style;
-            }
-            else
-            {
-                _modernCardStyles.Add(panel, style);
-                panel.Paint += ModernPanelPaint;
-                panel.Resize += ModernPanelResize;
-                panel.Disposed += ModernPanelDisposed;
+                panel.BackColor = Color.Transparent;
             }
 
-            panel.BackColor = Color.Transparent;
-            EnableDoubleBuffering(panel);
-            UpdatePanelRegion(panel, style);
-            panel.Invalidate();
+            RoundedCardRenderer renderer;
+            if (!_roundedCards.TryGetValue(control, out renderer))
+            {
+                renderer = new RoundedCardRenderer();
+                _roundedCards.Add(control, renderer);
+                control.Paint += RoundedCard_Paint;
+                control.Resize += RoundedCard_Resize;
+                control.HandleDestroyed += RoundedCard_HandleDestroyed;
+            }
+
+            renderer.TopColor = topColor;
+            renderer.BottomColor = bottomColor;
+            renderer.BorderColor = borderColor;
+            renderer.CornerRadius = cornerRadius;
+
+            control.Invalidate();
         }
 
-
-        private void ModernPanelPaint(object sender, PaintEventArgs e)
+        private void RoundedCard_Resize(object sender, EventArgs e)
         {
-            if (sender is Control panel && _modernCardStyles.TryGetValue(panel, out ModernCardStyle style))
+            Control control = sender as Control;
+            if (control != null)
             {
-                Rectangle bounds = panel.ClientRectangle;
-                if (bounds.Width <= 2 || bounds.Height <= 2)
-                {
-                    return;
-                }
-
-                bounds = Rectangle.Inflate(bounds, -1, -1);
-
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                e.Graphics.Clear(Color.Transparent);
-
-                using (GraphicsPath path = CreateRoundRectangle(bounds, style.CornerRadius))
-                {
-                    if (style.DrawShadow)
-                    {
-                        Rectangle shadowRect = new Rectangle(bounds.X + 3, bounds.Y + 4, bounds.Width, bounds.Height);
-                        using (GraphicsPath shadowPath = CreateRoundRectangle(shadowRect, style.CornerRadius))
-                        using (SolidBrush shadowBrush = new SolidBrush(Color.FromArgb(40, Color.Black)))
-                        {
-                            e.Graphics.FillPath(shadowBrush, shadowPath);
-                        }
-                    }
-
-                    using (LinearGradientBrush brush = new LinearGradientBrush(bounds, style.TopColor, style.BottomColor, LinearGradientMode.Vertical))
-                    {
-                        e.Graphics.FillPath(brush, path);
-                    }
-
-                    using (Pen borderPen = new Pen(style.BorderColor, 1f))
-                    {
-                        e.Graphics.DrawPath(borderPen, path);
-                    }
-                }
+                control.Invalidate();
             }
         }
 
-
-        private void ModernPanelResize(object sender, EventArgs e)
+        private void RoundedCard_HandleDestroyed(object sender, EventArgs e)
         {
-            if (sender is Control panel && _modernCardStyles.TryGetValue(panel, out ModernCardStyle style))
-            {
-                UpdatePanelRegion(panel, style);
-            }
-        }
-
-
-        private void ModernPanelDisposed(object sender, EventArgs e)
-        {
-            if (sender is Control panel)
-            {
-                panel.Paint -= ModernPanelPaint;
-                panel.Resize -= ModernPanelResize;
-                panel.Disposed -= ModernPanelDisposed;
-
-                if (_modernCardStyles.Remove(panel) && panel.Region != null)
-                {
-                    panel.Region.Dispose();
-                    panel.Region = null;
-                }
-            }
-        }
-
-
-        private void UpdatePanelRegion(Control panel, ModernCardStyle style)
-        {
-            if (panel == null || style == null)
+            Control control = sender as Control;
+            if (control == null)
             {
                 return;
             }
 
-            if (!style.ClipChildren)
+            control.Paint -= RoundedCard_Paint;
+            control.Resize -= RoundedCard_Resize;
+            control.HandleDestroyed -= RoundedCard_HandleDestroyed;
+            _roundedCards.Remove(control);
+        }
+
+        private void RoundedCard_Paint(object sender, PaintEventArgs e)
+        {
+            Control control = sender as Control;
+            if (control == null)
             {
-                Region previous = panel.Region;
-                panel.Region = null;
-                previous?.Dispose();
                 return;
             }
 
-            Rectangle bounds = panel.ClientRectangle;
-            if (bounds.Width <= 2 || bounds.Height <= 2)
+            RoundedCardRenderer renderer;
+            if (!_roundedCards.TryGetValue(control, out renderer))
             {
                 return;
             }
 
-            bounds = Rectangle.Inflate(bounds, -1, -1);
+            Rectangle bounds = control.ClientRectangle;
+            bounds.Width -= 1;
+            bounds.Height -= 1;
 
-            using (GraphicsPath path = CreateRoundRectangle(bounds, style.CornerRadius))
+            if (bounds.Width <= 0 || bounds.Height <= 0)
             {
-                Region previous = panel.Region;
-                panel.Region = new Region(path);
-                previous?.Dispose();
+                return;
+            }
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+            using (GraphicsPath path = CreateRoundedPath(bounds, renderer.CornerRadius))
+            {
+                using (LinearGradientBrush brush = new LinearGradientBrush(bounds, renderer.TopColor, renderer.BottomColor, LinearGradientMode.Vertical))
+                {
+                    e.Graphics.FillPath(brush, path);
+                }
+
+                using (Pen borderPen = new Pen(renderer.BorderColor))
+                {
+                    e.Graphics.DrawPath(borderPen, path);
+                }
             }
         }
 
-
-        private static GraphicsPath CreateRoundRectangle(Rectangle bounds, int radius)
+        private static GraphicsPath CreateRoundedPath(Rectangle bounds, int radius)
         {
             GraphicsPath path = new GraphicsPath();
 
-            int limitedRadius = Math.Max(0, radius);
-            int diameter = Math.Min(limitedRadius * 2, Math.Min(bounds.Width, bounds.Height));
+            int diameter = radius * 2;
+            if (diameter > bounds.Width)
+            {
+                diameter = bounds.Width;
+            }
+            if (diameter > bounds.Height)
+            {
+                diameter = bounds.Height;
+            }
+
             if (diameter <= 0)
             {
                 path.AddRectangle(bounds);
@@ -514,52 +438,16 @@ namespace MissionPlanner.GCSViews
                 return path;
             }
 
-            Size arcSize = new Size(diameter, diameter);
-            Rectangle arc = new Rectangle(bounds.Location, arcSize);
+            int arcWidth = diameter;
+            int arcHeight = diameter;
 
-            path.AddArc(arc, 180, 90);
-            arc.X = bounds.Right - diameter;
-            path.AddArc(arc, 270, 90);
-            arc.Y = bounds.Bottom - diameter;
-            path.AddArc(arc, 0, 90);
-            arc.X = bounds.Left;
-            path.AddArc(arc, 90, 90);
+            path.AddArc(bounds.X, bounds.Y, arcWidth, arcHeight, 180, 90);
+            path.AddArc(bounds.Right - arcWidth, bounds.Y, arcWidth, arcHeight, 270, 90);
+            path.AddArc(bounds.Right - arcWidth, bounds.Bottom - arcHeight, arcWidth, arcHeight, 0, 90);
+            path.AddArc(bounds.X, bounds.Bottom - arcHeight, arcWidth, arcHeight, 90, 90);
             path.CloseFigure();
 
             return path;
-        }
-
-
-        private static void EnableDoubleBuffering(Control control)
-        {
-            if (control == null)
-            {
-                return;
-            }
-
-            try
-            {
-                typeof(Control).InvokeMember("DoubleBuffered", BindingFlags.SetProperty | BindingFlags.Instance | BindingFlags.NonPublic, null, control, new object[] { true });
-            }
-            catch
-            {
-                // ignored - double buffering is a best-effort enhancement
-            }
-        }
-
-
-        private void but_mincommands_Click(object sender, System.EventArgs e)
-        {
-            if (panelWaypoints.Height <= 30)
-            {
-                panelWaypoints.Height = 166;
-                but_mincommands.Text = @"˅";
-            }
-            else
-            {
-                panelWaypoints.Height = but_mincommands.Height;
-                but_mincommands.Text = @"˄";
-            }
         }
 
         public static GMapOverlay airportsoverlay;

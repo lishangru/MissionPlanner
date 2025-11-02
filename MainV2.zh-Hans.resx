@@ -130,7 +130,7 @@
     <value>硬件配置</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>Mission Planner - 由 Michael Oborne 开发</value>
+    <value>Mission Planner - By Michael Oborne</value>
   </data>
   <data name="MenuTerminal.Text" xml:space="preserve">
     <value>终端</value>
@@ -163,7 +163,7 @@
     <value>模拟</value>
   </data>
   <data name="MenuHelp.ToolTipText" xml:space="preserve">
-    <value>帮助</value>
+    <value>终端</value>
   </data>
   <data name="MainMenu.Text" xml:space="preserve">
     <value>menuStrip1</value>
@@ -176,17 +176,5 @@
   </data>
   <data name="autoHideToolStripMenuItem.Text" xml:space="preserve">
     <value>自动隐藏</value>
-  </data>
-  <data name="fullScreenToolStripMenuItem.Text" xml:space="preserve">
-    <value>全屏</value>
-  </data>
-  <data name="readonlyToolStripMenuItem.Text" xml:space="preserve">
-    <value>只读</value>
-  </data>
-  <data name="connectionOptionsToolStripMenuItem.Text" xml:space="preserve">
-    <value>连接选项</value>
-  </data>
-  <data name="connectionListToolStripMenuItem.Text" xml:space="preserve">
-    <value>连接列表</value>
   </data>
 </root>
