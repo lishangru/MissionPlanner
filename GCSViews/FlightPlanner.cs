@@ -54,6 +54,7 @@ using MissionPlanner.ArduPilot.Mavlink;
 using System.Drawing.Imaging;
 using SharpKml.Engine;
 using MissionPlanner.Controls.Waypoints;
+using Strings = MissionPlanner.Strings;
 
 namespace MissionPlanner.GCSViews
 {
@@ -122,9 +123,9 @@ namespace MissionPlanner.GCSViews
                 Parent.BackColor = pageBackground;
             }
 
-            ApplyRoundedCard(panelWaypoints, cardTop, cardBottom, cardBorder, 14, new Padding(18, 16, 18, 16));
-            ApplyRoundedCard(panelAction, Color.FromArgb(252, 253, 255), Color.FromArgb(244, 246, 252), Color.FromArgb(210, 218, 235), 14, new Padding(16));
-            ApplyRoundedCard(panelMap, cardTop, cardBottom, cardBorder, 18, new Padding(16));
+            ApplyRoundedCard(panelWaypoints, cardTop, cardBottom, cardBorder, 14);
+            ApplyRoundedCard(panelAction, Color.FromArgb(252, 253, 255), Color.FromArgb(244, 246, 252), Color.FromArgb(210, 218, 235), 14);
+            ApplyRoundedCard(panelMap, cardTop, cardBottom, cardBorder, 18);
 
             if (flowLayoutPanel1 != null)
             {
@@ -204,8 +205,6 @@ namespace MissionPlanner.GCSViews
                 return;
             }
 
-            panel.Margin = new Padding(8);
-            panel.Padding = new Padding(12, 10, 12, 10);
             panel.BackColor = Color.Transparent;
             ApplyRoundedCard(panel, Color.White, Color.FromArgb(248, 249, 255), Color.FromArgb(224, 229, 242), 10);
         }
@@ -255,7 +254,6 @@ namespace MissionPlanner.GCSViews
             }
 
             button.Font = ModernBoldFont;
-            button.MinimumSize = new Size(92, 32);
             button.BGGradTop = accent;
             button.BGGradBot = ControlPaint.Dark(accent, 0.05f);
             button.TextColor = Color.White;
@@ -274,7 +272,6 @@ namespace MissionPlanner.GCSViews
             }
 
             button.Font = ModernBoldFont;
-            button.MinimumSize = new Size(92, 32);
             button.BGGradTop = Color.White;
             button.BGGradBot = Color.White;
             button.TextColor = textColor;
@@ -311,17 +308,6 @@ namespace MissionPlanner.GCSViews
             numericUpDown.Font = ModernRegularFont;
             numericUpDown.ForeColor = textColor;
             numericUpDown.BackColor = Color.White;
-        }
-
-        private void ApplyRoundedCard(Control control, Color topColor, Color bottomColor, Color borderColor, int cornerRadius, Padding padding)
-        {
-            if (control == null)
-            {
-                return;
-            }
-
-            control.Padding = padding;
-            ApplyRoundedCard(control, topColor, bottomColor, borderColor, cornerRadius);
         }
 
         private void ApplyRoundedCard(Control control, Color topColor, Color bottomColor, Color borderColor, int cornerRadius)
