@@ -155,6 +155,7 @@ namespace MissionPlanner
             resources.ApplyResources(this.MenuConfigTune, "MenuConfigTune");
             this.MenuConfigTune.Margin = new System.Windows.Forms.Padding(0);
             this.MenuConfigTune.Name = "MenuConfigTune";
+            this.MenuConfigTune.Visible = false;
             this.MenuConfigTune.Click += new System.EventHandler(this.MenuTuning_Click);
             // 
             // MenuSimulation
