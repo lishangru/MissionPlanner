@@ -64,6 +64,7 @@ namespace MissionPlanner.GCSViews
         private static readonly Font ModernBoldFont = new Font("Segoe UI Semibold", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
         private readonly Dictionary<Control, RoundedCardRenderer> _roundedCards = new Dictionary<Control, RoundedCardRenderer>();
+        private Dictionary<Control, int> _panelWaypointBaselineTops;
 
         private sealed class RoundedCardRenderer
         {
@@ -190,6 +191,162 @@ namespace MissionPlanner.GCSViews
             {
                 label6.Font = ModernBoldFont;
                 label6.ForeColor = textPrimary;
+            }
+
+            LayoutWaypointHeader();
+            if (panelWaypoints != null)
+            {
+                panelWaypoints.Resize -= PanelWaypoints_Resize;
+                panelWaypoints.Resize += PanelWaypoints_Resize;
+            }
+        }
+
+        private void PanelWaypoints_Resize(object sender, EventArgs e)
+        {
+            LayoutWaypointHeader();
+        }
+
+        private void LayoutWaypointHeader()
+        {
+            if (panelWaypoints == null || panelWaypoints.IsDisposed)
+            {
+                return;
+            }
+
+            if (panelWaypoints.ClientSize.Width <= 0)
+            {
+                return;
+            }
+
+            if (_panelWaypointBaselineTops == null)
+            {
+                _panelWaypointBaselineTops = new Dictionary<Control, int>();
+                foreach (Control control in panelWaypoints.Controls)
+                {
+                    _panelWaypointBaselineTops[control] = control.Top;
+                }
+            }
+
+            var columns = new (Control Top, Control Bottom)[]
+            {
+                (LBL_WPRad, TXT_WPRad),
+                (label5, TXT_loiterrad),
+                (LBL_defalutalt, TXT_DefaultAlt),
+                (label17, TXT_altwarn),
+                (CHK_verifyheight, CMB_altmode),
+                (chk_usemavftp, CHK_splinedefault),
+                (BUT_Add, null)
+            };
+
+            const int leftPadding = 20;
+            const int rightPadding = 20;
+            const int columnSpacing = 28;
+            const int rowSpacing = 12;
+            const int topMargin = 12;
+
+            int maxTopHeight = columns
+                .Select(pair => pair.Top != null ? Math.Max(pair.Top.Height, pair.Top.GetPreferredSize(Size.Empty).Height) : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            int maxBottomHeight = columns
+                .Select(pair => pair.Bottom != null ? Math.Max(pair.Bottom.Height, pair.Bottom.GetPreferredSize(Size.Empty).Height) : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            int availableWidth = panelWaypoints.ClientSize.Width;
+
+            int x = leftPadding;
+
+            foreach (var pair in columns)
+            {
+                if (pair.Top == null && pair.Bottom == null)
+                {
+                    continue;
+                }
+
+                Size topPreferred = pair.Top != null ? pair.Top.GetPreferredSize(Size.Empty) : Size.Empty;
+                int topWidth = pair.Top != null ? Math.Max(pair.Top.Width, topPreferred.Width) : 0;
+                int topHeight = pair.Top != null ? Math.Max(pair.Top.Height, topPreferred.Height) : 0;
+                int bottomWidth = pair.Bottom != null ? pair.Bottom.Width : 0;
+
+                if (pair.Bottom == CMB_altmode && bottomWidth < 140)
+                {
+                    bottomWidth = 140;
+                    CMB_altmode.Width = bottomWidth;
+                }
+
+                int columnWidth = Math.Max(topWidth, bottomWidth);
+
+                int currentX = x;
+
+                if (pair.Top != null)
+                {
+                    int topY = topMargin + (maxTopHeight - topHeight) / 2;
+                    pair.Top.Location = new Point(currentX, topY);
+                }
+
+                if (pair.Bottom != null)
+                {
+                    int bottomY = topMargin + maxTopHeight + rowSpacing;
+                    pair.Bottom.Location = new Point(currentX, bottomY);
+                }
+
+                x += columnWidth + columnSpacing;
+            }
+
+            if (but_mincommands != null)
+            {
+                int buttonY = topMargin + (maxTopHeight - but_mincommands.Height) / 2;
+                int buttonX = Math.Max(x, availableWidth - rightPadding - but_mincommands.Width);
+                if (buttonX + but_mincommands.Width + rightPadding > availableWidth)
+                {
+                    buttonX = Math.Max(leftPadding, availableWidth - rightPadding - but_mincommands.Width);
+                }
+
+                but_mincommands.Location = new Point(buttonX, buttonY);
+            }
+
+            if (Commands != null && _panelWaypointBaselineTops.TryGetValue(Commands, out int originalCommandsTop))
+            {
+                int targetTop = topMargin + maxTopHeight + rowSpacing + maxBottomHeight + rowSpacing;
+                int delta = Math.Max(0, targetTop - originalCommandsTop);
+
+                if (delta != 0)
+                {
+                    foreach (Control control in panelWaypoints.Controls)
+                    {
+                        if (control == null)
+                        {
+                            continue;
+                        }
+
+                        if (!_panelWaypointBaselineTops.TryGetValue(control, out int baseline))
+                        {
+                            continue;
+                        }
+
+                        if (baseline >= originalCommandsTop)
+                        {
+                            control.Top = baseline + delta;
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (Control control in panelWaypoints.Controls)
+                    {
+                        if (control == null)
+                        {
+                            continue;
+                        }
+
+                        if (_panelWaypointBaselineTops.TryGetValue(control, out int baseline) && baseline >= originalCommandsTop)
+                        {
+                            control.Top = baseline;
+                        }
+                    }
+                }
             }
         }
 
