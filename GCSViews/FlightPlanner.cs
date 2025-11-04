@@ -64,7 +64,6 @@ namespace MissionPlanner.GCSViews
         private static readonly Font ModernBoldFont = new Font("Segoe UI Semibold", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
         private readonly Dictionary<Control, RoundedCardRenderer> _roundedCards = new Dictionary<Control, RoundedCardRenderer>();
-        private readonly HashSet<Control> _spacedSections = new HashSet<Control>();
 
         private sealed class RoundedCardRenderer
         {
@@ -118,10 +117,6 @@ namespace MissionPlanner.GCSViews
             Color textSecondary = Color.FromArgb(104, 108, 125);
 
             BackColor = pageBackground;
-
-            ApplySectionSpacing(panelAction, new Padding(18, 20, 18, 24));
-            ApplySectionSpacing(panelWaypoints, new Padding(22, 24, 22, 24));
-            ApplySectionSpacing(panelMap, new Padding(24, 24, 24, 28));
 
             if (Parent != null)
             {
@@ -212,7 +207,6 @@ namespace MissionPlanner.GCSViews
             }
 
             panel.BackColor = Color.Transparent;
-            panel.Padding = new Padding(16, 18, 16, 18);
             panel.Margin = new Padding(0, 0, 0, 18);
             ApplyRoundedCard(panel, Color.White, Color.FromArgb(248, 249, 255), Color.FromArgb(224, 229, 242), 12);
         }
@@ -275,11 +269,6 @@ namespace MissionPlanner.GCSViews
             button.CornerRadius = 12;
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
-            button.Padding = new Padding(12, 0, 12, 0);
-            if (button.Height < 36)
-            {
-                button.Height = 36;
-            }
         }
 
         private void StyleOutlineButton(MyButton button, Color accent, Color textColor)
@@ -301,11 +290,6 @@ namespace MissionPlanner.GCSViews
             button.CornerRadius = 12;
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
-            button.Padding = new Padding(12, 0, 12, 0);
-            if (button.Height < 36)
-            {
-                button.Height = 36;
-            }
         }
 
         private void StyleComboBox(ComboBox comboBox, Color textColor)
@@ -365,64 +349,6 @@ namespace MissionPlanner.GCSViews
             renderer.CornerRadius = cornerRadius;
 
             control.Invalidate();
-        }
-
-        private void ApplySectionSpacing(Control container, Padding padding)
-        {
-            if (container == null)
-            {
-                return;
-            }
-
-            if (_spacedSections.Contains(container))
-            {
-                return;
-            }
-
-            foreach (Control child in container.Controls)
-            {
-                if (child == null || child.Dock != DockStyle.None)
-                {
-                    continue;
-                }
-
-                AnchorStyles anchor = child.Anchor;
-                bool anchorLeft = (anchor & AnchorStyles.Left) == AnchorStyles.Left;
-                bool anchorRight = (anchor & AnchorStyles.Right) == AnchorStyles.Right;
-                bool anchorTop = (anchor & AnchorStyles.Top) == AnchorStyles.Top;
-                bool anchorBottom = (anchor & AnchorStyles.Bottom) == AnchorStyles.Bottom;
-
-                if (anchorLeft && anchorRight)
-                {
-                    child.Left += padding.Left;
-                    child.Width = Math.Max(0, child.Width - (padding.Left + padding.Right));
-                }
-                else if (anchorLeft || (!anchorLeft && !anchorRight))
-                {
-                    child.Left += padding.Left;
-                }
-                else if (anchorRight)
-                {
-                    child.Left -= padding.Right;
-                }
-
-                if (anchorTop && anchorBottom)
-                {
-                    child.Top += padding.Top;
-                    child.Height = Math.Max(0, child.Height - (padding.Top + padding.Bottom));
-                }
-                else if (anchorTop || (!anchorTop && !anchorBottom))
-                {
-                    child.Top += padding.Top;
-                }
-                else if (anchorBottom)
-                {
-                    child.Top -= padding.Bottom;
-                }
-            }
-
-            container.Padding = padding;
-            _spacedSections.Add(container);
         }
 
         private void RoundedCard_Resize(object sender, EventArgs e)
