@@ -54,15 +54,32 @@ using MissionPlanner.ArduPilot.Mavlink;
 using System.Drawing.Imaging;
 using SharpKml.Engine;
 using MissionPlanner.Controls.Waypoints;
+using Strings = MissionPlanner.Strings;
 
 namespace MissionPlanner.GCSViews
 {
     public partial class FlightPlanner : MyUserControl, IDeactivate, IActivate
     {
+        private static readonly Font ModernRegularFont = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+        private static readonly Font ModernBoldFont = new Font("Segoe UI Semibold", 9F, FontStyle.Regular, GraphicsUnit.Point);
+
+        private readonly Dictionary<Control, RoundedCardRenderer> _roundedCards = new Dictionary<Control, RoundedCardRenderer>();
+        private Dictionary<Control, int> _panelWaypointBaselineTops;
+
+        private sealed class RoundedCardRenderer
+        {
+            public Color TopColor;
+            public Color BottomColor;
+            public Color BorderColor;
+            public int CornerRadius;
+        }
+
         public FlightPlanner()
         {
             InitializeComponent();
             Init();
+            ApplyModernTheme();
+            ParentChanged += FlightPlanner_ParentChanged;
         }
 
 
@@ -78,6 +95,512 @@ namespace MissionPlanner.GCSViews
                 panelWaypoints.Height = but_mincommands.Height;
                 but_mincommands.Text = @"˄";
             }
+        }
+
+        private void FlightPlanner_ParentChanged(object sender, EventArgs e)
+        {
+            if (Parent != null)
+            {
+                Parent.BackColor = BackColor;
+            }
+        }
+
+        private void ApplyModernTheme()
+        {
+            Color pageBackground = Color.FromArgb(244, 246, 251);
+            Color cardTop = Color.White;
+            Color cardBottom = Color.FromArgb(248, 249, 255);
+            Color cardBorder = Color.FromArgb(220, 226, 240);
+            Color accent = Color.FromArgb(88, 101, 242);
+            Color accentHover = ControlPaint.Light(accent, 0.2f);
+            Color accentPressed = ControlPaint.Dark(accent, 0.2f);
+            Color textPrimary = Color.FromArgb(46, 48, 66);
+            Color textSecondary = Color.FromArgb(104, 108, 125);
+
+            BackColor = pageBackground;
+
+            if (Parent != null)
+            {
+                Parent.BackColor = pageBackground;
+            }
+
+            ApplyRoundedCard(panelWaypoints, cardTop, cardBottom, cardBorder, 14);
+            ApplyRoundedCard(panelAction, Color.FromArgb(252, 253, 255), Color.FromArgb(244, 246, 252), Color.FromArgb(210, 218, 235), 14);
+            ApplyRoundedCard(panelMap, cardTop, cardBottom, cardBorder, 18);
+
+            if (flowLayoutPanel1 != null)
+            {
+                flowLayoutPanel1.BackColor = Color.Transparent;
+                flowLayoutPanel1.Padding = new Padding(16, 20, 16, 24);
+                flowLayoutPanel1.AutoScrollMargin = new Size(18, 18);
+                flowLayoutPanel1.AutoScroll = true;
+                flowLayoutPanel1.ControlAdded -= FlowLayoutPanel1_ControlAdded;
+                flowLayoutPanel1.ControlAdded += FlowLayoutPanel1_ControlAdded;
+
+                foreach (Control child in flowLayoutPanel1.Controls)
+                {
+                    StyleActionCard(child);
+                }
+            }
+
+            if (panel3 != null)
+            {
+                panel3.BackColor = Color.Transparent;
+            }
+
+            if (panel2 != null)
+            {
+                panel2.BackColor = Color.Transparent;
+            }
+
+            if (splitter1 != null)
+            {
+                splitter1.BackColor = Color.FromArgb(223, 228, 240);
+            }
+
+            if (splitter2 != null)
+            {
+                splitter2.BackColor = Color.FromArgb(223, 228, 240);
+            }
+
+            StyleMissionGrid(accent, accentHover, textPrimary, textSecondary);
+
+            StylePrimaryButton(BUT_write, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_read, accent, accentHover, accentPressed);
+            StylePrimaryButton(but_writewpfast, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_Add, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_loadwpfile, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_saveWPFile, accent, accentHover, accentPressed);
+            StylePrimaryButton(BUT_InjectCustomMap, accent, accentHover, accentPressed);
+
+            StyleOutlineButton(but_mincommands, accent, textSecondary);
+
+            StyleComboBox(CMB_altmode, textPrimary);
+            StyleComboBox(cmb_missiontype, textPrimary);
+            StyleComboBox(comboBoxMapType, textPrimary);
+
+            StyleNumericUpDown(Zoomlevel, textPrimary);
+
+            if (lbl_status != null)
+            {
+                lbl_status.Font = ModernBoldFont;
+                lbl_status.ForeColor = accent;
+            }
+
+            if (label6 != null)
+            {
+                label6.Font = ModernBoldFont;
+                label6.ForeColor = textPrimary;
+            }
+
+            LayoutWaypointHeader();
+            if (panelWaypoints != null)
+            {
+                panelWaypoints.Resize -= PanelWaypoints_Resize;
+                panelWaypoints.Resize += PanelWaypoints_Resize;
+            }
+        }
+
+        private void PanelWaypoints_Resize(object sender, EventArgs e)
+        {
+            LayoutWaypointHeader();
+        }
+
+        private void LayoutWaypointHeader()
+        {
+            if (panelWaypoints == null || panelWaypoints.IsDisposed)
+            {
+                return;
+            }
+
+            if (panelWaypoints.ClientSize.Width <= 0)
+            {
+                return;
+            }
+
+            if (_panelWaypointBaselineTops == null)
+            {
+                _panelWaypointBaselineTops = new Dictionary<Control, int>();
+                foreach (Control control in panelWaypoints.Controls)
+                {
+                    _panelWaypointBaselineTops[control] = control.Top;
+                }
+            }
+
+            var columns = new (Control Top, Control Bottom)[]
+            {
+                (LBL_WPRad, TXT_WPRad),
+                (label5, TXT_loiterrad),
+                (LBL_defalutalt, TXT_DefaultAlt),
+                (label17, TXT_altwarn),
+                (CHK_verifyheight, CMB_altmode),
+                (chk_usemavftp, CHK_splinedefault),
+                (BUT_Add, null)
+            };
+
+            const int leftPadding = 20;
+            const int rightPadding = 20;
+            const int columnSpacing = 28;
+            const int rowSpacing = 12;
+            const int topMargin = 12;
+
+            int maxTopHeight = columns
+                .Select(pair => pair.Top != null ? Math.Max(pair.Top.Height, pair.Top.GetPreferredSize(Size.Empty).Height) : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            int maxBottomHeight = columns
+                .Select(pair => pair.Bottom != null ? Math.Max(pair.Bottom.Height, pair.Bottom.GetPreferredSize(Size.Empty).Height) : 0)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            int availableWidth = panelWaypoints.ClientSize.Width;
+
+            int x = leftPadding;
+
+            foreach (var pair in columns)
+            {
+                if (pair.Top == null && pair.Bottom == null)
+                {
+                    continue;
+                }
+
+                Size topPreferred = pair.Top != null ? pair.Top.GetPreferredSize(Size.Empty) : Size.Empty;
+                int topWidth = pair.Top != null ? Math.Max(pair.Top.Width, topPreferred.Width) : 0;
+                int topHeight = pair.Top != null ? Math.Max(pair.Top.Height, topPreferred.Height) : 0;
+                int bottomWidth = pair.Bottom != null ? pair.Bottom.Width : 0;
+
+                if (pair.Bottom == CMB_altmode && bottomWidth < 140)
+                {
+                    bottomWidth = 140;
+                    CMB_altmode.Width = bottomWidth;
+                }
+
+                int columnWidth = Math.Max(topWidth, bottomWidth);
+
+                int currentX = x;
+
+                if (pair.Top != null)
+                {
+                    int topY = topMargin + (maxTopHeight - topHeight) / 2;
+                    pair.Top.Location = new Point(currentX, topY);
+                }
+
+                if (pair.Bottom != null)
+                {
+                    int bottomY = topMargin + maxTopHeight + rowSpacing;
+                    pair.Bottom.Location = new Point(currentX, bottomY);
+                }
+
+                x += columnWidth + columnSpacing;
+            }
+
+            if (but_mincommands != null)
+            {
+                int buttonY = topMargin + (maxTopHeight - but_mincommands.Height) / 2;
+                int buttonX = Math.Max(x, availableWidth - rightPadding - but_mincommands.Width);
+                if (buttonX + but_mincommands.Width + rightPadding > availableWidth)
+                {
+                    buttonX = Math.Max(leftPadding, availableWidth - rightPadding - but_mincommands.Width);
+                }
+
+                but_mincommands.Location = new Point(buttonX, buttonY);
+            }
+
+            if (Commands != null && _panelWaypointBaselineTops.TryGetValue(Commands, out int originalCommandsTop))
+            {
+                int targetTop = topMargin + maxTopHeight + rowSpacing + maxBottomHeight + rowSpacing;
+                int delta = Math.Max(0, targetTop - originalCommandsTop);
+
+                if (delta != 0)
+                {
+                    foreach (Control control in panelWaypoints.Controls)
+                    {
+                        if (control == null)
+                        {
+                            continue;
+                        }
+
+                        if (!_panelWaypointBaselineTops.TryGetValue(control, out int baseline))
+                        {
+                            continue;
+                        }
+
+                        if (baseline >= originalCommandsTop)
+                        {
+                            control.Top = baseline + delta;
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (Control control in panelWaypoints.Controls)
+                    {
+                        if (control == null)
+                        {
+                            continue;
+                        }
+
+                        if (_panelWaypointBaselineTops.TryGetValue(control, out int baseline) && baseline >= originalCommandsTop)
+                        {
+                            control.Top = baseline;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void FlowLayoutPanel1_ControlAdded(object sender, ControlEventArgs e)
+        {
+            StyleActionCard(e.Control);
+        }
+
+        private void StyleActionCard(Control control)
+        {
+            Panel panel = control as Panel;
+            if (panel == null)
+            {
+                return;
+            }
+
+            panel.BackColor = Color.Transparent;
+            panel.Margin = new Padding(0, 0, 0, 18);
+            ApplyRoundedCard(panel, Color.White, Color.FromArgb(248, 249, 255), Color.FromArgb(224, 229, 242), 12);
+        }
+
+        private void StyleMissionGrid(Color accent, Color accentHover, Color textPrimary, Color textSecondary)
+        {
+            if (Commands == null)
+            {
+                return;
+            }
+
+            Commands.EnableHeadersVisualStyles = false;
+            Commands.BackgroundColor = Color.White;
+            Commands.BorderStyle = BorderStyle.None;
+            Commands.GridColor = Color.FromArgb(226, 230, 242);
+            Commands.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+            Commands.RowHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+            Commands.ColumnHeadersDefaultCellStyle.BackColor = accent;
+            Commands.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            Commands.ColumnHeadersDefaultCellStyle.SelectionBackColor = accent;
+            Commands.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.ColumnHeadersDefaultCellStyle.Font = ModernBoldFont;
+            Commands.ColumnHeadersDefaultCellStyle.Padding = new Padding(0, 12, 0, 12);
+            Commands.ColumnHeadersHeight = 46;
+            Commands.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            Commands.DefaultCellStyle.Font = ModernRegularFont;
+            Commands.DefaultCellStyle.ForeColor = textPrimary;
+            Commands.DefaultCellStyle.SelectionBackColor = accentHover;
+            Commands.DefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.DefaultCellStyle.BackColor = Color.White;
+            Commands.DefaultCellStyle.Padding = new Padding(12, 6, 12, 6);
+            Commands.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 249, 255);
+            Commands.AlternatingRowsDefaultCellStyle.SelectionBackColor = accentHover;
+            Commands.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.RowHeadersDefaultCellStyle.BackColor = Color.FromArgb(236, 240, 248);
+            Commands.RowHeadersDefaultCellStyle.ForeColor = textSecondary;
+            Commands.RowHeadersDefaultCellStyle.SelectionBackColor = accentHover;
+            Commands.RowHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+            Commands.RowTemplate.DefaultCellStyle.Padding = new Padding(0, 6, 0, 6);
+            Commands.RowTemplate.Height = 40;
+            Commands.RowTemplate.MinimumHeight = 38;
+        }
+
+        private void StylePrimaryButton(MyButton button, Color accent, Color accentHover, Color accentPressed)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.Font = ModernBoldFont;
+            button.BGGradTop = accent;
+            button.BGGradBot = ControlPaint.Dark(accent, 0.05f);
+            button.TextColor = Color.White;
+            button.TextColorNotEnabled = Color.FromArgb(180, Color.White);
+            button.ColorMouseOver = accentHover;
+            button.ColorMouseDown = accentPressed;
+            button.ColorNotEnabled = Color.FromArgb(120, accent);
+            button.Outline = ControlPaint.Dark(accent, 0.3f);
+            button.CornerRadius = 12;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+        }
+
+        private void StyleOutlineButton(MyButton button, Color accent, Color textColor)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.Font = ModernBoldFont;
+            button.BGGradTop = Color.White;
+            button.BGGradBot = Color.White;
+            button.TextColor = textColor;
+            button.TextColorNotEnabled = Color.FromArgb(160, textColor);
+            button.ColorMouseOver = Color.FromArgb(30, accent);
+            button.ColorMouseDown = Color.FromArgb(60, accent);
+            button.ColorNotEnabled = Color.FromArgb(120, accent);
+            button.Outline = Color.FromArgb(180, accent);
+            button.CornerRadius = 12;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+        }
+
+        private void StyleComboBox(ComboBox comboBox, Color textColor)
+        {
+            if (comboBox == null)
+            {
+                return;
+            }
+
+            comboBox.FlatStyle = FlatStyle.Flat;
+            comboBox.Font = ModernRegularFont;
+            comboBox.ForeColor = textColor;
+            comboBox.BackColor = Color.White;
+            comboBox.IntegralHeight = false;
+            comboBox.DropDownHeight = 220;
+        }
+
+        private void StyleNumericUpDown(NumericUpDown numericUpDown, Color textColor)
+        {
+            if (numericUpDown == null)
+            {
+                return;
+            }
+
+            numericUpDown.BorderStyle = BorderStyle.FixedSingle;
+            numericUpDown.Font = ModernRegularFont;
+            numericUpDown.ForeColor = textColor;
+            numericUpDown.BackColor = Color.White;
+        }
+
+        private void ApplyRoundedCard(Control control, Color topColor, Color bottomColor, Color borderColor, int cornerRadius)
+        {
+            if (control == null)
+            {
+                return;
+            }
+
+            Panel panel = control as Panel;
+            if (panel != null)
+            {
+                panel.BackColor = Color.Transparent;
+            }
+
+            RoundedCardRenderer renderer;
+            if (!_roundedCards.TryGetValue(control, out renderer))
+            {
+                renderer = new RoundedCardRenderer();
+                _roundedCards.Add(control, renderer);
+                control.Paint += RoundedCard_Paint;
+                control.Resize += RoundedCard_Resize;
+                control.HandleDestroyed += RoundedCard_HandleDestroyed;
+            }
+
+            renderer.TopColor = topColor;
+            renderer.BottomColor = bottomColor;
+            renderer.BorderColor = borderColor;
+            renderer.CornerRadius = cornerRadius;
+
+            control.Invalidate();
+        }
+
+        private void RoundedCard_Resize(object sender, EventArgs e)
+        {
+            Control control = sender as Control;
+            if (control != null)
+            {
+                control.Invalidate();
+            }
+        }
+
+        private void RoundedCard_HandleDestroyed(object sender, EventArgs e)
+        {
+            Control control = sender as Control;
+            if (control == null)
+            {
+                return;
+            }
+
+            control.Paint -= RoundedCard_Paint;
+            control.Resize -= RoundedCard_Resize;
+            control.HandleDestroyed -= RoundedCard_HandleDestroyed;
+            _roundedCards.Remove(control);
+        }
+
+        private void RoundedCard_Paint(object sender, PaintEventArgs e)
+        {
+            Control control = sender as Control;
+            if (control == null)
+            {
+                return;
+            }
+
+            RoundedCardRenderer renderer;
+            if (!_roundedCards.TryGetValue(control, out renderer))
+            {
+                return;
+            }
+
+            Rectangle bounds = control.ClientRectangle;
+            bounds.Width -= 1;
+            bounds.Height -= 1;
+
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                return;
+            }
+
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+            using (GraphicsPath path = CreateRoundedPath(bounds, renderer.CornerRadius))
+            {
+                using (LinearGradientBrush brush = new LinearGradientBrush(bounds, renderer.TopColor, renderer.BottomColor, LinearGradientMode.Vertical))
+                {
+                    e.Graphics.FillPath(brush, path);
+                }
+
+                using (Pen borderPen = new Pen(renderer.BorderColor))
+                {
+                    e.Graphics.DrawPath(borderPen, path);
+                }
+            }
+        }
+
+        private static GraphicsPath CreateRoundedPath(Rectangle bounds, int radius)
+        {
+            GraphicsPath path = new GraphicsPath();
+
+            int diameter = radius * 2;
+            if (diameter > bounds.Width)
+            {
+                diameter = bounds.Width;
+            }
+            if (diameter > bounds.Height)
+            {
+                diameter = bounds.Height;
+            }
+
+            if (diameter <= 0)
+            {
+                path.AddRectangle(bounds);
+                path.CloseFigure();
+                return path;
+            }
+
+            int arcWidth = diameter;
+            int arcHeight = diameter;
+
+            path.AddArc(bounds.X, bounds.Y, arcWidth, arcHeight, 180, 90);
+            path.AddArc(bounds.Right - arcWidth, bounds.Y, arcWidth, arcHeight, 270, 90);
+            path.AddArc(bounds.Right - arcWidth, bounds.Bottom - arcHeight, arcWidth, arcHeight, 0, 90);
+            path.AddArc(bounds.X, bounds.Bottom - arcHeight, arcWidth, arcHeight, 90, 90);
+            path.CloseFigure();
+
+            return path;
         }
 
         public static GMapOverlay airportsoverlay;

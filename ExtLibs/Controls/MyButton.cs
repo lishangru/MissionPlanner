@@ -24,6 +24,7 @@ namespace MissionPlanner.Controls
         internal Color _ColorNotEnabled;
         internal Color _ColorMouseOver;
         internal Color _ColorMouseDown;
+        int _cornerRadius;
 
         bool inOnPaint = false;
 
@@ -53,6 +54,24 @@ namespace MissionPlanner.Controls
         [DefaultValue(typeof(Color), "0x79, 0x94, 0x29")]
         public Color Outline { get { return _Outline; } set { _Outline = value; this.Invalidate(); } }
 
+        [System.ComponentModel.Browsable(true), System.ComponentModel.Category("Appearance")]
+        [DefaultValue(typeof(int), "0")]
+        public int CornerRadius
+        {
+            get { return _cornerRadius; }
+            set
+            {
+                if (value < 0)
+                    value = 0;
+
+                if (_cornerRadius == value)
+                    return;
+
+                _cornerRadius = value;
+                Invalidate();
+            }
+        }
+
         protected override Size DefaultSize => base.DefaultSize;
 
         public MyButton()
@@ -68,8 +87,6 @@ namespace MissionPlanner.Controls
 
         protected override void OnPaint(PaintEventArgs pevent)
         {
-            //base.OnPaint(pevent);
-
             if (inOnPaint)
                 return;
 
@@ -79,82 +96,76 @@ namespace MissionPlanner.Controls
             {
                 Graphics gr = pevent.Graphics;
 
-                gr.Clear(this.BackColor);
-
+                gr.Clear(BackColor);
                 gr.SmoothingMode = SmoothingMode.AntiAlias;
 
-                Rectangle outside = new Rectangle(0, 0, this.Width, this.Height);
+                Rectangle bounds = new Rectangle(0, 0, Width - 1, Height - 1);
 
-                LinearGradientBrush linear = new LinearGradientBrush(outside, BGGradTop, BGGradBot, LinearGradientMode.Vertical);
-
-                Pen mypen = new Pen(Outline, 1);
-
-                GraphicsPath outline = new GraphicsPath();
-
-                float wid = this.Height / 3f;
-
-                wid = 1;
-
-                int width = this.Width - 1;
-                int height = this.Height - 1;
-
-                // tl
-                outline.AddArc(0, 0, wid, wid, 180, 90);
-                // top line
-                outline.AddLine(wid, 0, width - wid, 0);
-                // tr
-                outline.AddArc(width - wid, 0, wid, wid, 270, 90);
-                // br
-                outline.AddArc(width - wid, height - wid, wid, wid, 0, 90);
-                // bottom line
-                outline.AddLine(wid, height, width - wid, height);
-                // bl
-                outline.AddArc(0, height - wid, wid, wid, 90, 90);
-                // left line
-                outline.AddLine(0, height - wid, 0, wid - wid / 2);
-
-
-                gr.FillPath(linear, outline);
-
-                gr.DrawPath(mypen, outline);
-
-                SolidBrush mybrush = this.Enabled ? new SolidBrush(TextColor) : new SolidBrush(TextColorNotEnabled);
-
-                if (_mouseover)
+                if (bounds.Width <= 0 || bounds.Height <= 0)
                 {
-                    SolidBrush brush = new SolidBrush(ColorMouseOver);
-
-                    gr.FillPath(brush, outline);
-                }
-                if (_mousedown)
-                {
-                    SolidBrush brush = new SolidBrush(ColorMouseDown);
-
-                    gr.FillPath(brush, outline);
+                    return;
                 }
 
-                if (!this.Enabled)
+                using (GraphicsPath outline = CreateOutline(bounds, CornerRadius))
                 {
-                    SolidBrush brush = new SolidBrush(_ColorNotEnabled);
+                    using (LinearGradientBrush linear = new LinearGradientBrush(bounds, BGGradTop, BGGradBot, LinearGradientMode.Vertical))
+                    {
+                        gr.FillPath(linear, outline);
+                    }
 
-                    gr.FillPath(brush, outline);
+                    if (_mouseover)
+                    {
+                        using (SolidBrush brush = new SolidBrush(ColorMouseOver))
+                        {
+                            gr.FillPath(brush, outline);
+                        }
+                    }
+
+                    if (_mousedown)
+                    {
+                        using (SolidBrush brush = new SolidBrush(ColorMouseDown))
+                        {
+                            gr.FillPath(brush, outline);
+                        }
+                    }
+
+                    if (!Enabled)
+                    {
+                        using (SolidBrush brush = new SolidBrush(_ColorNotEnabled))
+                        {
+                            gr.FillPath(brush, outline);
+                        }
+                    }
+
+                    using (Pen mypen = new Pen(Outline, 1))
+                    {
+                        gr.DrawPath(mypen, outline);
+                    }
+
+                    using (SolidBrush textBrush = new SolidBrush(Enabled ? TextColor : TextColorNotEnabled))
+                    {
+                        using (StringFormat stringFormat = new StringFormat())
+                        {
+                            stringFormat.Alignment = StringAlignment.Center;
+                            stringFormat.LineAlignment = StringAlignment.Center;
+
+                            string display = Text;
+                            int amppos = display.IndexOf('&');
+                            if (amppos != -1)
+                                display = display.Remove(amppos, 1);
+
+                            gr.DrawString(display, Font, textBrush, bounds, stringFormat);
+                        }
+                    }
                 }
-
-
-                StringFormat stringFormat = new StringFormat();
-                stringFormat.Alignment = StringAlignment.Center;
-                stringFormat.LineAlignment = StringAlignment.Center;
-
-                string display = this.Text;
-                int amppos = display.IndexOf('&');
-                if (amppos != -1)
-                    display = display.Remove(amppos, 1);
-
-                gr.DrawString(display, this.Font, mybrush, outside, stringFormat);
             }
-            catch { }
-
-            inOnPaint = false;
+            catch
+            {
+            }
+            finally
+            {
+                inOnPaint = false;
+            }
         }
 
         protected override void OnClick(EventArgs e)
@@ -194,6 +205,37 @@ namespace MissionPlanner.Controls
         protected override void WndProc(ref Message m)
         {
             base.WndProc(ref m);
+        }
+
+        GraphicsPath CreateOutline(Rectangle bounds, int radius)
+        {
+            GraphicsPath outline = new GraphicsPath();
+
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                outline.AddRectangle(bounds);
+                return outline;
+            }
+
+            int maxRadius = Math.Min(bounds.Width, bounds.Height) / 2;
+            if (radius > maxRadius)
+                radius = maxRadius;
+
+            if (radius <= 0)
+            {
+                outline.AddRectangle(bounds);
+                outline.CloseFigure();
+                return outline;
+            }
+
+            int diameter = radius * 2;
+            outline.AddArc(bounds.X, bounds.Y, diameter, diameter, 180, 90);
+            outline.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270, 90);
+            outline.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+            outline.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+            outline.CloseFigure();
+
+            return outline;
         }
     }
 }
